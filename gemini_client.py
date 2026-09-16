@@ -12,6 +12,7 @@ Bien moi truong: GEMINI_API_KEY=...
 from __future__ import annotations
 import os
 import json
+import time
 
 from spec_schema import PartSpec
 from llm_client import LLMClient, SYSTEM_PROMPT, _strip_code_fence
@@ -28,9 +29,7 @@ class GeminiLLMClient(LLMClient):
         self.client = genai.Client(api_key=api_key)
         self.model = model
 
-       def _call(self, user_prompt: str) -> dict:
-        import time
-
+    def _call(self, user_prompt: str) -> dict:
         last_error = None
         for attempt in range(3):
             try:
