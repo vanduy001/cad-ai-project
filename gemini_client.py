@@ -28,14 +28,26 @@ class GeminiLLMClient(LLMClient):
         self.client = genai.Client(api_key=api_key)
         self.model = model
 
-    def _call(self, user_prompt: str) -> dict:
-        resp = self.client.models.generate_content(
-            model=self.model,
-            contents=user_prompt,
-            config={"system_instruction": SYSTEM_PROMPT},
-        )
-        text = _strip_code_fence(resp.text)
-        return json.loads(text)
+       def _call(self, user_prompt: str) -> dict:
+        import time
+
+        last_error = None
+        for attempt in range(3):
+            try:
+                resp = self.client.models.generate_content(
+                    model=self.model,
+                    contents=user_prompt,
+                    config={"system_instruction": SYSTEM_PROMPT},
+                )
+                text = _strip_code_fence(resp.text)
+                return json.loads(text)
+            except Exception as e:
+                last_error = e
+                if "503" in str(e) or "UNAVAILABLE" in str(e):
+                    time.sleep(3)
+                    continue
+                raise
+        raise last_error
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
         data = self._call(f"Yeu cau thiet ke:\n{nl_request}")
