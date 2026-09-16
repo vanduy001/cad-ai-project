@@ -1,0 +1,19 @@
+{
+  "part_type": "plate",
+  "base_dimensions": {"length": 100, "width": 60, "thickness": 5},
+  "features": [
+    {
+      "type": "hole",
+      "params": {
+        "diameter": 6,
+        "depth": "through",
+        "positions": [[10, 10], [90, 10], [10, 50], [90, 50]]
+      }
+    },
+    {"type": "fillet", "params": {"radius": 3, "edges": "corners"}}
+  ],
+  "constraints": [{"type": "symmetric", "params": {"axis": "both"}}],
+  "material": "Steel",
+  "tolerance": 0.1,
+  "units": "mm"
+}

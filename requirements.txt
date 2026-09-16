@@ -1,0 +1,6 @@
+# Cài bằng: pip install -r requirements.txt
+# Khuyến nghị dùng conda/mamba cho cadquery vì nó kéo theo OCP (OpenCascade
+# binding) khá nặng; pip cũng cài được nhưng đôi khi cần thêm bước.
+
+cadquery>=2.4
+anthropic>=0.40
