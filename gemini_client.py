@@ -50,6 +50,8 @@ class GeminiLLMClient(LLMClient):
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
         data = self._call(f"Yeu cau thiet ke:\n{nl_request}")
+        if "error" in data:
+            raise ValueError(f"Khong the xu ly yeu cau: {data['error']}")
         return PartSpec.from_dict(data)
 
     def repair_spec(self, nl_request: str, current_spec: PartSpec, errors: list[str]) -> PartSpec:
@@ -61,6 +63,8 @@ class GeminiLLMClient(LLMClient):
             "Tra ve JSON day du theo dung schema, khong giai thich."
         )
         data = self._call(prompt)
+        if "error" in data:
+            raise ValueError(f"Khong the sua duoc yeu cau: {data['error']}")
         return PartSpec.from_dict(data)
 
 

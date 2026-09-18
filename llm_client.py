@@ -45,6 +45,16 @@ Quy tắc feature params:
   slot:    {"length":..,"width":..,"depth":"through"|<số>, "position":[x,y], "angle":0}
 
 positions/position tính theo hệ toạ độ tâm mặt phẳng đặt tại tâm hình học của base.
+
+QUAN TRỌNG - Từ chối yêu cầu không phù hợp:
+Nếu yêu cầu của người dùng KHÔNG thể mô tả bằng 5 part_type và 6 feature_type ở trên
+(ví dụ: có ren, bánh răng, biên dạng tự do, lắp ghép nhiều bộ phận, rãnh then,
+bo tròn không đều, mặt cắt phức tạp...),
+HOẶC không đủ thông tin để xác định kích thước cơ bản,
+HOẶC không phải là mô tả 1 chi tiết cơ khí (câu vô nghĩa, câu hỏi khác, chào hỏi...),
+thì KHÔNG được cố gắng ép vào 1 part_type bất kỳ để trả lời cho có.
+Thay vào đó, PHẢI trả về DUY NHẤT JSON dạng:
+{"error": "<mô tả ngắn gọn bằng tiếng Việt lý do không xử lý được>"}
 """
 
 
@@ -82,6 +92,8 @@ class ClaudeLLMClient(LLMClient):
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
         data = self._call(f"Yêu cầu thiết kế:\n{nl_request}")
+        if "error" in data:
+            raise ValueError(f"Không thể xử lý yêu cầu: {data['error']}")
         return PartSpec.from_dict(data)
 
     def repair_spec(self, nl_request: str, current_spec: PartSpec, errors: list[str]) -> PartSpec:
@@ -93,6 +105,8 @@ class ClaudeLLMClient(LLMClient):
             "Trả về JSON đầy đủ theo đúng schema, không giải thích."
         )
         data = self._call(prompt)
+        if "error" in data:
+            raise ValueError(f"Không thể sửa được yêu cầu: {data['error']}")
         return PartSpec.from_dict(data)
 
 
