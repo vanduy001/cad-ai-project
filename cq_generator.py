@@ -1,17 +1,7 @@
 """
 cq_generator.py
 =================
-Chuyển PartSpec -> chuỗi code CadQuery (Python).
-
-Chiến lược: TEMPLATE-BASED, không để LLM tự sinh code CadQuery tự do.
-Mỗi part_type có 1 hàm "builder" riêng, mỗi feature có 1 hàm "apply" riêng.
-Lý do (đã thống nhất trong đề cương):
-    - Độ tin cậy cao hơn nhiều so với để LLM sinh code trực tiếp.
-    - Dễ viết validation vì biết chính xác cấu trúc code sinh ra.
-    - LLM chỉ chịu trách nhiệm ở bước NL -> Spec (đã đủ khó rồi).
-
-Nếu muốn thử hướng (b) "LLM sinh code trực tiếp" để so sánh, viết thêm
-llm_code_generator.py riêng, KHÔNG sửa file này.
+Chuyen PartSpec -> chuoi code CadQuery (Python). Template-based.
 """
 
 from __future__ import annotations
@@ -28,18 +18,12 @@ class CodeGenError(ValueError):
 
 def _build_plate_base(spec: PartSpec) -> str:
     d = spec.base_dimensions
-    return (
-        f"result = cq.Workplane('XY').box({d['length']}, {d['width']}, {d['thickness']})"
-    )
+    return f"result = cq.Workplane('XY').box({d['length']}, {d['width']}, {d['thickness']})"
 
 
 def _build_bracket_base(spec: PartSpec) -> str:
-    # Bracket đơn giản: hiện tại dựng như 1 block chữ nhật (bản mở rộng sau
-    # có thể thêm profile chữ L qua polyline + extrude).
     d = spec.base_dimensions
-    return (
-        f"result = cq.Workplane('XY').box({d['length']}, {d['width']}, {d['thickness']})"
-    )
+    return f"result = cq.Workplane('XY').box({d['length']}, {d['width']}, {d['thickness']})"
 
 
 def _build_flange_base(spec: PartSpec) -> str:
@@ -54,9 +38,23 @@ def _build_flange_base(spec: PartSpec) -> str:
 
 def _build_shaft_base(spec: PartSpec) -> str:
     d = spec.base_dimensions
-    return (
-        f"result = cq.Workplane('XY').circle({d['diameter']} / 2).extrude({d['length']})"
-    )
+    return f"result = cq.Workplane('XY').circle({d['diameter']} / 2).extrude({d['length']})"
+
+
+def _build_stepped_shaft_base(spec: PartSpec) -> str:
+    segments = spec.base_dimensions["segments"]
+    lines = [
+        f"_segments = {segments!r}",
+        "result = None",
+        "_z = 0",
+        "for _seg in _segments:",
+        "    _d = _seg['diameter']",
+        "    _l = _seg['length']",
+        "    _piece = cq.Workplane('XY').workplane(offset=_z).circle(_d / 2).extrude(_l)",
+        "    result = _piece if result is None else result.union(_piece)",
+        "    _z += _l",
+    ]
+    return "\n".join(lines)
 
 
 def _build_housing_base(spec: PartSpec) -> str:
@@ -74,6 +72,7 @@ _BASE_BUILDERS = {
     "bracket": _build_bracket_base,
     "flange": _build_flange_base,
     "shaft": _build_shaft_base,
+    "stepped_shaft": _build_stepped_shaft_base,
     "housing": _build_housing_base,
 }
 
@@ -85,7 +84,7 @@ _BASE_BUILDERS = {
 def _apply_hole(feat: Feature, spec: PartSpec, idx: int) -> str:
     p = feat.params
     diameter = p["diameter"]
-    positions = p["positions"]  # list [x, y] tính từ tâm mặt phẳng XY
+    positions = p["positions"]
     depth = p.get("depth", "through")
 
     lines = [f"pts_{idx} = {positions}"]
@@ -106,13 +105,7 @@ def _apply_fillet(feat: Feature, spec: PartSpec, idx: int) -> str:
     p = feat.params
     radius = p["radius"]
     edges = p.get("edges", "all")
-
-    selector_map = {
-        "all": "'|Z'",
-        "top": "'>Z'",
-        "bottom": "'<Z'",
-        "corners": "'|Z'",  # dùng chung selector cạnh đứng; đủ cho block đơn giản
-    }
+    selector_map = {"all": "'|Z'", "top": "'>Z'", "bottom": "'<Z'", "corners": "'|Z'"}
     selector = selector_map.get(edges, "'|Z'")
     return f"result = result.edges({selector}).fillet({radius})"
 
@@ -155,7 +148,6 @@ def _apply_slot(feat: Feature, spec: PartSpec, idx: int) -> str:
     length, width, depth = p["length"], p["width"], p.get("depth", "through")
     x, y = p["position"]
     angle = p.get("angle", 0)
-
     setup = (
         f"result = (result.faces('>Z').workplane()"
         f".center({x}, {y})"
@@ -167,6 +159,47 @@ def _apply_slot(feat: Feature, spec: PartSpec, idx: int) -> str:
     return setup + f".cutBlind(-{depth}))"
 
 
+def _apply_keyway(feat: Feature, spec: PartSpec, idx: int) -> str:
+    """Ranh then: cat 1 khoi hop chu nhat vao than truc, tinh theo mat ngoai."""
+    p = feat.params
+    width = p["width"]
+    depth = p["depth"]
+    length = p["length"]
+    z_start = p.get("z_start", 0)
+    shaft_d = p["shaft_diameter"]
+    r = shaft_d / 2
+    lines = [
+        f"_r_{idx} = {r}",
+        f"_bottom_{idx} = _r_{idx} - {depth}",
+        f"_top_{idx} = _r_{idx} + 5",
+        f"_h_{idx} = _top_{idx} - _bottom_{idx}",
+        f"_cy_{idx} = (_bottom_{idx} + _top_{idx}) / 2",
+        f"_cz_{idx} = {z_start} + {length} / 2",
+        f"_cutter_{idx} = cq.Workplane('XY').box({width}, _h_{idx}, {length})",
+        f"_cutter_{idx} = _cutter_{idx}.translate((0, _cy_{idx}, _cz_{idx}))",
+        f"result = result.cut(_cutter_{idx})",
+    ]
+    return "\n".join(lines)
+
+
+def _apply_bolt_circle(feat: Feature, spec: PartSpec, idx: int) -> str:
+    """Vong lo bat vit bo tri deu quanh tam (dung cho flange)."""
+    p = feat.params
+    count = p["count"]
+    hole_d = p["hole_diameter"]
+    pcd = p["pcd"]
+    lines = [
+        f"_positions_{idx} = []",
+        f"for _i in range({count}):",
+        f"    _angle = 2 * math.pi * _i / {count}",
+        f"    _x = ({pcd} / 2) * math.cos(_angle)",
+        f"    _y = ({pcd} / 2) * math.sin(_angle)",
+        f"    _positions_{idx}.append((_x, _y))",
+        f"result = (result.faces('>Z').workplane().pushPoints(_positions_{idx}).hole({hole_d}))",
+    ]
+    return "\n".join(lines)
+
+
 _FEATURE_APPLIERS = {
     "hole": _apply_hole,
     "fillet": _apply_fillet,
@@ -174,6 +207,8 @@ _FEATURE_APPLIERS = {
     "pocket": _apply_pocket,
     "boss": _apply_boss,
     "slot": _apply_slot,
+    "keyway": _apply_keyway,
+    "bolt_circle": _apply_bolt_circle,
 }
 
 
@@ -182,19 +217,14 @@ _FEATURE_APPLIERS = {
 # ---------------------------------------------------------------------------
 
 def generate_cadquery_code(spec: PartSpec) -> str:
-    """Sinh code CadQuery hoàn chỉnh (dạng chuỗi) từ PartSpec.
-
-    Code sinh ra luôn gán solid cuối cùng vào biến `result`, để executor
-    có thể exec() rồi lấy `result` ra export STEP / kiểm tra hình học.
-    """
     if spec.part_type not in _BASE_BUILDERS:
-        raise CodeGenError(f"Chưa hỗ trợ sinh code cho part_type='{spec.part_type}'")
+        raise CodeGenError(f"Chua ho tro sinh code cho part_type='{spec.part_type}'")
 
-    lines = ["import cadquery as cq", "", _BASE_BUILDERS[spec.part_type](spec)]
+    lines = ["import cadquery as cq", "import math", "", _BASE_BUILDERS[spec.part_type](spec)]
 
     for i, feat in enumerate(spec.features):
         if feat.type not in _FEATURE_APPLIERS:
-            raise CodeGenError(f"Chưa hỗ trợ sinh code cho feature type='{feat.type}'")
+            raise CodeGenError(f"Chua ho tro sinh code cho feature type='{feat.type}'")
         lines.append(_FEATURE_APPLIERS[feat.type](feat, spec, i))
 
     return "\n".join(lines)

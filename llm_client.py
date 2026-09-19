@@ -22,9 +22,9 @@ Chỉ trả về DUY NHẤT một JSON object hợp lệ, không thêm lời gi�
 
 Schema JSON bắt buộc:
 {
-  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing",
+  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft",
   "base_dimensions": {...tuỳ part_type, đơn vị mm...},
-  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot", "params": {...}} ],
+  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle", "params": {...}} ],
   "constraints": [ {"type": "symmetric"|"concentric"|"min_wall_thickness"|"min_edge_distance", "params": {...}} ],
   "material": "tên vật liệu hoặc null",
   "tolerance": 0.1
@@ -34,22 +34,25 @@ Quy tắc base_dimensions theo part_type:
   plate/bracket: {"length":..,"width":..,"thickness":..}
   flange:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   shaft:         {"diameter":..,"length":..}
+  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}  (dùng khi trục có từ 2 đoạn đường kính khác nhau trở lên)
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
 
 Quy tắc feature params:
-  hole:    {"diameter":.., "depth":"through"|<số mm>, "positions":[[x,y],...]}
-  fillet:  {"radius":.., "edges":"all"|"corners"|"top"|"bottom"}
-  chamfer: {"distance":.., "edges":"all"|"top"|"bottom"}
-  pocket:  {"length":..,"width":..,"depth":..,"position":[x,y]}
-  boss:    {"diameter":..,"height":..,"position":[x,y]}
-  slot:    {"length":..,"width":..,"depth":"through"|<số>, "position":[x,y], "angle":0}
+  hole:        {"diameter":.., "depth":"through"|<số mm>, "positions":[[x,y],...]}
+  fillet:      {"radius":.., "edges":"all"|"corners"|"top"|"bottom"}
+  chamfer:     {"distance":.., "edges":"all"|"top"|"bottom"}
+  pocket:      {"length":..,"width":..,"depth":..,"position":[x,y]}
+  boss:        {"diameter":..,"height":..,"position":[x,y]}
+  slot:        {"length":..,"width":..,"depth":"through"|<số>, "position":[x,y], "angle":0}
+  keyway:      {"width":.., "depth":.., "length":.., "z_start":.., "shaft_diameter":..}  (rãnh then, dùng cho shaft/stepped_shaft)
+  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}  (vòng lỗ bắt vít bố trí đều quanh tâm, dùng cho flange)
 
 positions/position tính theo hệ toạ độ tâm mặt phẳng đặt tại tâm hình học của base.
 
 QUAN TRỌNG - Từ chối yêu cầu không phù hợp:
-Nếu yêu cầu của người dùng KHÔNG thể mô tả bằng 5 part_type và 6 feature_type ở trên
-(ví dụ: có ren, bánh răng, biên dạng tự do, lắp ghép nhiều bộ phận, rãnh then,
-bo tròn không đều, mặt cắt phức tạp...),
+Nếu yêu cầu của người dùng KHÔNG thể mô tả bằng các part_type và feature_type ở trên
+(ví dụ: có ren, bánh răng, biên dạng tự do phức tạp, lắp ghép nhiều bộ phận,
+mặt cắt bậc phức tạp nhiều tầng không đối xứng...),
 HOẶC không đủ thông tin để xác định kích thước cơ bản,
 HOẶC không phải là mô tả 1 chi tiết cơ khí (câu vô nghĩa, câu hỏi khác, chào hỏi...),
 thì KHÔNG được cố gắng ép vào 1 part_type bất kỳ để trả lời cho có.
