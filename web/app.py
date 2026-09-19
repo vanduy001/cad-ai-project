@@ -8,10 +8,12 @@ Chay: uvicorn web.app:app --reload
 import sys
 import uuid
 import pathlib
+import time
+from collections import defaultdict
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
@@ -19,6 +21,10 @@ from pipeline import run_pipeline
 from gemini_client import get_gemini_client
 
 app = FastAPI()
+
+_request_log: dict[str, list[float]] = defaultdict(list)
+MAX_REQUESTS_PER_WINDOW = 5
+WINDOW_SECONDS = 3600  # 1 gio
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent / "generated"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -35,7 +41,18 @@ def index():
 
 
 @app.post("/generate")
-def generate(body: GenerateRequest):
+def generate(request: Request, body: GenerateRequest):
+    client_ip = request.client.host
+    now = time.time()
+    _request_log[client_ip] = [t for t in _request_log[client_ip] if now - t < WINDOW_SECONDS]
+
+    if len(_request_log[client_ip]) >= MAX_REQUESTS_PER_WINDOW:
+        return {
+            "success": False,
+            "message": f"Ban da vuot qua gioi han {MAX_REQUESTS_PER_WINDOW} lan tao/gio. Vui long thu lai sau.",
+        }
+    _request_log[client_ip].append(now)
+
     file_id = uuid.uuid4().hex[:8]
     output_path = OUTPUT_DIR / f"{file_id}.step"
 
