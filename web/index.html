@@ -2,35 +2,100 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>AI Thiet Ke CAD</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Thiết Kế CAD</title>
 <style>
-body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
-h1 { font-size: 24px; }
-textarea { width: 100%; height: 100px; font-size: 16px; padding: 10px; box-sizing: border-box; }
-button { margin-top: 10px; padding: 10px 24px; font-size: 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
-button:disabled { background: #999; }
-#status { margin-top: 20px; padding: 15px; border-radius: 6px; background: #f3f4f6; display: none; }
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  max-width: 720px; margin: 0 auto; padding: 24px 20px 60px;
+  background: #f9fafb; color: #1f2937;
+}
+h1 { font-size: 22px; margin-bottom: 4px; }
+.subtitle { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+textarea {
+  width: 100%; height: 90px; font-size: 15px; padding: 12px;
+  border: 1px solid #d1d5db; border-radius: 10px; resize: vertical;
+  font-family: inherit;
+}
+textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
+
+.examples { margin: 12px 0 16px; }
+.examples-label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+.example-chip {
+  display: inline-block; background: white; border: 1px solid #d1d5db;
+  color: #374151; padding: 6px 12px; border-radius: 20px; font-size: 13px;
+  margin: 0 6px 6px 0; cursor: pointer; transition: all .15s;
+}
+.example-chip:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+
+button.main-btn {
+  padding: 12px 28px; font-size: 15px; font-weight: 600;
+  background: #2563eb; color: white; border: none; border-radius: 10px;
+  cursor: pointer; transition: background .15s;
+}
+button.main-btn:hover:not(:disabled) { background: #1d4ed8; }
+button.main-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+#status {
+  margin-top: 20px; padding: 16px; border-radius: 10px;
+  background: white; border: 1px solid #e5e7eb; display: none;
+  font-size: 14px; line-height: 1.6;
+}
 #status.show { display: block; }
-a.download { display: inline-block; margin-top: 10px; background: #16a34a; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; }
+#status.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+#status.success { background: #f0fdf4; border-color: #bbf7d0; }
+
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid #d1d5db; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin .8s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+a.download {
+  display: inline-block; margin-top: 12px; background: #16a34a; color: white;
+  padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;
+}
+a.download:hover { background: #15803d; }
+
+.note { font-size: 12px; color: #9ca3af; margin-top: 24px; text-align: center; }
 </style>
 </head>
 <body>
-<h1>AI Thiet Ke CAD Tu Ngon Ngu Tu Nhien</h1>
-<p>Nhap mo ta chi tiet co khi ban muon, vi du: "ve cho toi 1 cai truc tron dai 50mm duong kinh 12mm"</p>
-<textarea id="req" placeholder="Nhap mo ta o day..."></textarea><br>
-<button id="btn" onclick="generate()">Tao ban ve</button>
+<h1>AI Thiết Kế CAD Từ Ngôn Ngữ Tự Nhiên</h1>
+<p class="subtitle">Mô tả chi tiết cơ khí bằng lời, AI sẽ tự dựng mô hình 3D và xuất file STEP.</p>
+
+<textarea id="req" placeholder="Ví dụ: vẽ cho tôi 1 cái trục tròn dài 50mm đường kính 12mm"></textarea>
+
+<div class="examples">
+  <div class="examples-label">Thử nhanh với ví dụ:</div>
+  <span class="example-chip" onclick="fillExample(this)">Trục tròn dài 50mm đường kính 12mm</span>
+  <span class="example-chip" onclick="fillExample(this)">Tấm thép 100x60x5mm có 4 lỗ đường kính 6mm, bo tròn 4 góc bán kính 3mm</span>
+  <span class="example-chip" onclick="fillExample(this)">Mặt bích ngoài 60mm, lỗ tâm 15mm, dày 20mm, 6 lỗ bắt vít đường kính 10mm trên vòng tròn 45mm</span>
+  <span class="example-chip" onclick="fillExample(this)">Trục 3 bậc: cổ 1 đường kính 50 dài 20, cổ 2 đường kính 40 dài 10, cổ 3 đường kính 10 dài 10</span>
+</div>
+
+<button id="btn" class="main-btn" onclick="generate()">Tạo bản vẽ</button>
 <div id="status"></div>
 
+<p class="note">Đồ án tốt nghiệp: Ứng dụng trí tuệ nhân tạo và mã nguồn mở trong tự động hoá thiết kế chi tiết cơ khí 3D</p>
+
 <script>
+function fillExample(el) {
+  document.getElementById('req').value = el.textContent;
+}
+
 async function generate() {
   const req = document.getElementById('req').value.trim();
   const status = document.getElementById('status');
   const btn = document.getElementById('btn');
-  if (!req) { alert('Vui long nhap mo ta'); return; }
+  if (!req) { alert('Vui lòng nhập mô tả'); return; }
 
   btn.disabled = true;
   status.className = 'show';
-  status.innerHTML = 'Dang phan tich yeu cau va dung mo hinh 3D... (co the mat 10-40 giay)';
+  status.innerHTML = '<span class="spinner"></span>Đang phân tích yêu cầu và dựng mô hình 3D... (có thể mất 10-90 giây)';
 
   try {
     const res = await fetch('/generate', {
@@ -41,13 +106,16 @@ async function generate() {
     const data = await res.json();
 
     if (data.success) {
-      status.innerHTML = 'Hoan tat! ' + data.message +
-        '<br><a class="download" href="' + data.download_url + '">Tai file STEP</a>';
+      status.className = 'show success';
+      status.innerHTML = '✅ ' + data.message +
+        '<br><a class="download" href="' + data.download_url + '">⬇ Tải file STEP</a>';
     } else {
-      status.innerHTML = 'Loi: ' + data.message;
+      status.className = 'show error';
+      status.innerHTML = '⚠️ ' + data.message;
     }
   } catch (e) {
-    status.innerHTML = 'Loi ket noi toi server: ' + e;
+    status.className = 'show error';
+    status.innerHTML = '⚠️ Lỗi kết nối tới server: ' + e;
   }
   btn.disabled = false;
 }
