@@ -22,7 +22,28 @@ def _build_plate_base(spec: PartSpec) -> str:
 
 
 def _build_bracket_base(spec: PartSpec) -> str:
+    """Neu co du 'leg_height' va 'leg_thickness' thi ve hinh chu L that
+    (dung profile + extrude). Neu khong co, fallback ve khoi hop don gian
+    (giu tuong thich nguoc)."""
     d = spec.base_dimensions
+    if "leg_height" in d and "leg_thickness" in d:
+        length = d["length"]
+        base_thickness = d["thickness"]
+        leg_height = d["leg_height"]
+        leg_thickness = d["leg_thickness"]
+        width = d["width"]
+        lines = [
+            f"_profile = (cq.Workplane('XZ')",
+            f"    .moveTo(0, 0)",
+            f"    .lineTo({length}, 0)",
+            f"    .lineTo({length}, {base_thickness})",
+            f"    .lineTo({leg_thickness}, {base_thickness})",
+            f"    .lineTo({leg_thickness}, {leg_height})",
+            f"    .lineTo(0, {leg_height})",
+            f"    .close())",
+            f"result = _profile.extrude({width})",
+        ]
+        return "\n".join(lines)
     return f"result = cq.Workplane('XY').box({d['length']}, {d['width']}, {d['thickness']})"
 
 
@@ -160,7 +181,6 @@ def _apply_slot(feat: Feature, spec: PartSpec, idx: int) -> str:
 
 
 def _apply_keyway(feat: Feature, spec: PartSpec, idx: int) -> str:
-    """Ranh then: cat 1 khoi hop chu nhat vao than truc, tinh theo mat ngoai."""
     p = feat.params
     width = p["width"]
     depth = p["depth"]
@@ -183,7 +203,6 @@ def _apply_keyway(feat: Feature, spec: PartSpec, idx: int) -> str:
 
 
 def _apply_bolt_circle(feat: Feature, spec: PartSpec, idx: int) -> str:
-    """Vong lo bat vit bo tri deu quanh tam (dung cho flange)."""
     p = feat.params
     count = p["count"]
     hole_d = p["hole_diameter"]
@@ -200,6 +219,39 @@ def _apply_bolt_circle(feat: Feature, spec: PartSpec, idx: int) -> str:
     return "\n".join(lines)
 
 
+def _apply_radial_hole(feat: Feature, spec: PartSpec, idx: int) -> str:
+    """Khoan lo ngang xuyen qua truc (vuong goc voi truc chinh Z),
+    dung cho shaft / stepped_shaft. height_from_base tinh tu day (Z=0)."""
+    p = feat.params
+    diameter = p["diameter"]
+    height_from_base = p["height_from_base"]
+    outer_extent = p.get("outer_extent", 200)  # du dai de xuyen het duong kinh truc
+    lines = [
+        f"_cutter_{idx} = (cq.Workplane('YZ')",
+        f"    .move(0, {height_from_base})",
+        f"    .circle({diameter} / 2)",
+        f"    .extrude({outer_extent}, both=True))",
+        f"result = result.cut(_cutter_{idx})",
+    ]
+    return "\n".join(lines)
+
+
+def _apply_counterbore(feat: Feature, spec: PartSpec, idx: int) -> str:
+    """Lo bac / lo chim dau vit: lo nho xuyen suot + lo to nong o mat tren."""
+    p = feat.params
+    hole_d = p["diameter"]
+    cbore_d = p["cbore_diameter"]
+    cbore_depth = p["cbore_depth"]
+    positions = p["positions"]
+    lines = [
+        f"pts_{idx} = {positions}",
+        f"result = (result.faces('>Z').workplane()"
+        f".pushPoints(pts_{idx})"
+        f".cboreHole({hole_d}, {cbore_d}, {cbore_depth}))",
+    ]
+    return "\n".join(lines)
+
+
 _FEATURE_APPLIERS = {
     "hole": _apply_hole,
     "fillet": _apply_fillet,
@@ -209,6 +261,8 @@ _FEATURE_APPLIERS = {
     "slot": _apply_slot,
     "keyway": _apply_keyway,
     "bolt_circle": _apply_bolt_circle,
+    "radial_hole": _apply_radial_hole,
+    "counterbore": _apply_counterbore,
 }
 
 

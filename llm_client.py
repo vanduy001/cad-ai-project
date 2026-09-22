@@ -1,13 +1,13 @@
 """
 llm_client.py
 ===============
-Bọc lời gọi tới LLM (Claude API) cho 2 việc:
-    1. nl_to_spec(text)               : NL request -> PartSpec (JSON có schema)
-    2. repair_spec(spec, errors, nl)  : sửa spec dựa trên lỗi validator trả về
+Boc loi goi toi LLM (Claude API) cho 2 viec:
+    1. nl_to_spec(text)               : NL request -> PartSpec (JSON co schema)
+    2. repair_spec(spec, errors, nl)  : sua spec dua tren loi validator tra ve
 
-Yêu cầu: pip install anthropic, và biến môi trường ANTHROPIC_API_KEY.
-Nếu chưa có API key, dùng DemoLLMClient (rule-based, chỉ khớp đúng câu
-mẫu trong examples/) để chạy thử toàn bộ pipeline không cần mạng/API key.
+Yeu cau: pip install anthropic, va bien moi truong ANTHROPIC_API_KEY.
+Neu chua co API key, dung DemoLLMClient (rule-based, chi khop dung cau
+mau trong examples/) de chay thu toan bo pipeline khong can mang/API key.
 """
 
 from __future__ import annotations
@@ -17,47 +17,50 @@ import re
 from abc import ABC, abstractmethod
 from spec_schema import PartSpec, validate_spec
 
-SYSTEM_PROMPT = """Bạn là bộ chuyển đổi yêu cầu thiết kế cơ khí sang JSON đặc tả tham số.
-Chỉ trả về DUY NHẤT một JSON object hợp lệ, không thêm lời giải thích, không dùng markdown code fence.
+SYSTEM_PROMPT = """Ban la bo chuyen doi yeu cau thiet ke co khi sang JSON dac ta tham so.
+Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dung markdown code fence.
 
-Schema JSON bắt buộc:
+Schema JSON bat buoc:
 {
   "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft",
-  "base_dimensions": {...tuỳ part_type, đơn vị mm...},
-  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle", "params": {...}} ],
-  "constraints": [ {"type": "symmetric"|"concentric"|"min_wall_thickness"|"min_edge_distance", "params": {...}} ],
-  "material": "tên vật liệu hoặc null",
+  "base_dimensions": {...tuy part_type, don vi mm...},
+  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore", "params": {...}} ],
+  "constraints": [],
+  "material": "ten vat lieu hoac null",
   "tolerance": 0.1
 }
 
-Quy tắc base_dimensions theo part_type:
-  plate/bracket: {"length":..,"width":..,"thickness":..}
+Quy tac base_dimensions theo part_type:
+  plate:         {"length":..,"width":..,"thickness":..}
+  bracket:       {"length":..,"width":..,"thickness":.., "leg_height":.., "leg_thickness":..}  (leg_height/leg_thickness dung khi can gia do hinh chu L that, bo trong neu chi can khoi hop don gian)
   flange:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   shaft:         {"diameter":..,"length":..}
-  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}  (dùng khi trục có từ 2 đoạn đường kính khác nhau trở lên)
+  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}  (dung khi truc co tu 2 doan duong kinh khac nhau tro len)
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
 
-Quy tắc feature params:
-  hole:        {"diameter":.., "depth":"through"|<số mm>, "positions":[[x,y],...]}
+Quy tac feature params:
+  hole:        {"diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
   fillet:      {"radius":.., "edges":"all"|"corners"|"top"|"bottom"}
   chamfer:     {"distance":.., "edges":"all"|"top"|"bottom"}
   pocket:      {"length":..,"width":..,"depth":..,"position":[x,y]}
   boss:        {"diameter":..,"height":..,"position":[x,y]}
-  slot:        {"length":..,"width":..,"depth":"through"|<số>, "position":[x,y], "angle":0}
-  keyway:      {"width":.., "depth":.., "length":.., "z_start":.., "shaft_diameter":..}  (rãnh then, dùng cho shaft/stepped_shaft)
-  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}  (vòng lỗ bắt vít bố trí đều quanh tâm, dùng cho flange)
+  slot:        {"length":..,"width":..,"depth":"through"|<so>, "position":[x,y], "angle":0}
+  keyway:      {"width":.., "depth":.., "length":.., "z_start":.., "shaft_diameter":..}  (ranh then, dung cho shaft/stepped_shaft)
+  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}  (vong lo bat vit bo tri deu quanh tam, dung cho flange)
+  radial_hole: {"diameter":.., "height_from_base":..}  (lo khoan ngang xuyen qua truc, vuong goc truc chinh, dung cho shaft/stepped_shaft; height_from_base tinh tu day Z=0)
+  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}  (lo bac/lo chim dau vit: lo nho xuyen suot + lo to nong o mat tren de chim dau bu long)
 
-positions/position tính theo hệ toạ độ tâm mặt phẳng đặt tại tâm hình học của base.
+positions/position tinh theo he toa do tam mat phang dat tai tam hinh hoc cua base.
 
-QUAN TRỌNG - Từ chối yêu cầu không phù hợp:
-Nếu yêu cầu của người dùng KHÔNG thể mô tả bằng các part_type và feature_type ở trên
-(ví dụ: có ren, bánh răng, biên dạng tự do phức tạp, lắp ghép nhiều bộ phận,
-mặt cắt bậc phức tạp nhiều tầng không đối xứng...),
-HOẶC không đủ thông tin để xác định kích thước cơ bản,
-HOẶC không phải là mô tả 1 chi tiết cơ khí (câu vô nghĩa, câu hỏi khác, chào hỏi...),
-thì KHÔNG được cố gắng ép vào 1 part_type bất kỳ để trả lời cho có.
-Thay vào đó, PHẢI trả về DUY NHẤT JSON dạng:
-{"error": "<mô tả ngắn gọn bằng tiếng Việt lý do không xử lý được>"}
+QUAN TRONG - Tu choi yeu cau khong phu hop:
+Neu yeu cau cua nguoi dung KHONG the mo ta bang cac part_type va feature_type o tren
+(vi du: co ren, banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
+mat cat bac phuc tap nhieu tang khong doi xung...),
+HOAC khong du thong tin de xac dinh kich thuoc co ban,
+HOAC khong phai la mo ta 1 chi tiet co khi (cau vo nghia, cau hoi khac, chao hoi...),
+thi KHONG duoc co gang ep vao 1 part_type bat ky de tra loi cho co.
+Thay vao do, PHAI tra ve DUY NHAT JSON dang:
+{"error": "<mo ta ngan gon bang tieng Viet ly do khong xu ly duoc>"}
 """
 
 
@@ -72,12 +75,12 @@ class LLMClient(ABC):
 
 
 class ClaudeLLMClient(LLMClient):
-    """Client thật, gọi Anthropic API. Cần: pip install anthropic
-    và export ANTHROPIC_API_KEY=sk-...
+    """Client that, goi Anthropic API. Can: pip install anthropic
+    va export ANTHROPIC_API_KEY=sk-...
     """
 
     def __init__(self, model: str = "claude-sonnet-4-6"):
-        import anthropic  # import trễ để không bắt buộc cài nếu dùng DemoLLMClient
+        import anthropic
 
         self.client = anthropic.Anthropic()
         self.model = model
@@ -94,22 +97,22 @@ class ClaudeLLMClient(LLMClient):
         return json.loads(text)
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
-        data = self._call(f"Yêu cầu thiết kế:\n{nl_request}")
+        data = self._call(f"Yeu cau thiet ke:\n{nl_request}")
         if "error" in data:
-            raise ValueError(f"Không thể xử lý yêu cầu: {data['error']}")
+            raise ValueError(f"Khong the xu ly yeu cau: {data['error']}")
         return PartSpec.from_dict(data)
 
     def repair_spec(self, nl_request: str, current_spec: PartSpec, errors: list[str]) -> PartSpec:
         prompt = (
-            f"Yêu cầu thiết kế gốc:\n{nl_request}\n\n"
-            f"Spec hiện tại (đã sinh nhưng còn lỗi):\n{current_spec.to_json()}\n\n"
-            f"Các lỗi cần sửa:\n" + "\n".join(f"- {e}" for e in errors) + "\n\n"
-            "Hãy sửa lại spec để khắc phục các lỗi trên, giữ nguyên các phần đã đúng. "
-            "Trả về JSON đầy đủ theo đúng schema, không giải thích."
+            f"Yeu cau thiet ke goc:\n{nl_request}\n\n"
+            f"Spec hien tai (da sinh nhung con loi):\n{current_spec.to_json()}\n\n"
+            f"Cac loi can sua:\n" + "\n".join(f"- {e}" for e in errors) + "\n\n"
+            "Hay sua lai spec de khac phuc cac loi tren, giu nguyen cac phan da dung. "
+            "Tra ve JSON day du theo dung schema, khong giai thich."
         )
         data = self._call(prompt)
         if "error" in data:
-            raise ValueError(f"Không thể sửa được yêu cầu: {data['error']}")
+            raise ValueError(f"Khong the sua duoc yeu cau: {data['error']}")
         return PartSpec.from_dict(data)
 
 
@@ -121,40 +124,35 @@ def _strip_code_fence(text: str) -> str:
 
 
 class DemoLLMClient(LLMClient):
-    """Client giả lập KHÔNG gọi API — dùng để chạy thử toàn bộ pipeline khi
-    chưa có ANTHROPIC_API_KEY hoặc chưa có mạng. Chỉ nhận diện được câu mẫu
-    trong examples/plate_4holes_request.txt bằng keyword-matching thô sơ.
-
-    Mục đích: cho phép sinh viên/giảng viên chạy `python pipeline.py --demo`
-    và thấy toàn bộ pipeline hoạt động end-to-end ngay lập tức.
+    """Client gia lap KHONG goi API - dung de chay thu toan bo pipeline khi
+    chua co ANTHROPIC_API_KEY hoac chua co mang. Chi nhan dien duoc cau mau
+    trong examples/plate_4holes_request.txt bang keyword-matching tho so.
     """
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
         from spec_schema import example_plate_spec
 
         text = nl_request.lower()
-        if "tấm" in text or "plate" in text:
+        if "tam" in text or "plate" in text:
             return example_plate_spec()
         raise NotImplementedError(
-            "DemoLLMClient chỉ hỗ trợ câu mẫu 'tấm phẳng...'. "
-            "Dùng ClaudeLLMClient với API key thật cho câu yêu cầu tự do."
+            "DemoLLMClient chi ho tro cau mau 'tam phang...'. "
+            "Dung ClaudeLLMClient voi API key that cho cau yeu cau tu do."
         )
 
     def repair_spec(self, nl_request: str, current_spec: PartSpec, errors: list[str]) -> PartSpec:
-        # Demo mode không có khả năng tự sửa thông minh — trả nguyên spec.
-        # Trong pipeline thật, đây là nơi ClaudeLLMClient.repair_spec phát huy tác dụng.
         return current_spec
 
 
 def get_default_client() -> LLMClient:
-    """Trả về ClaudeLLMClient nếu có API key + đã cài `anthropic`,
-    ngược lại fallback về DemoLLMClient để không chặn việc chạy thử.
+    """Tra ve ClaudeLLMClient neu co API key + da cai `anthropic`,
+    nguoc lai fallback ve DemoLLMClient de khong chan viec chay thu.
     """
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return ClaudeLLMClient()
         except ImportError:
-            print("[llm_client] Chưa cài `anthropic` (pip install anthropic). Dùng DemoLLMClient.")
+            print("[llm_client] Chua cai `anthropic` (pip install anthropic). Dung DemoLLMClient.")
     else:
-        print("[llm_client] Chưa set ANTHROPIC_API_KEY. Dùng DemoLLMClient (chỉ chạy được câu mẫu).")
+        print("[llm_client] Chua set ANTHROPIC_API_KEY. Dung DemoLLMClient (chi chay duoc cau mau).")
     return DemoLLMClient()

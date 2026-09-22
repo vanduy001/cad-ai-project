@@ -10,7 +10,10 @@ from typing import Optional, Any
 import json
 
 SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft")
-SUPPORTED_FEATURE_TYPES = ("hole", "fillet", "chamfer", "pocket", "boss", "slot", "keyway", "bolt_circle")
+SUPPORTED_FEATURE_TYPES = (
+    "hole", "fillet", "chamfer", "pocket", "boss", "slot",
+    "keyway", "bolt_circle", "radial_hole", "counterbore",
+)
 
 
 class SpecValidationError(ValueError):

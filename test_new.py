@@ -3,4 +3,4 @@ from spec_schema import example_plate_spec
 
 code = generate_cadquery_code(example_plate_spec())
 print(code)
-print("\n---OK, khong loi---")
+print("\n---OK khong loi---")
