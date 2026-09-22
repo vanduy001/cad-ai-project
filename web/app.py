@@ -23,7 +23,7 @@ from gemini_client import get_gemini_client
 app = FastAPI()
 
 _request_log: dict[str, list[float]] = defaultdict(list)
-MAX_REQUESTS_PER_WINDOW = 5
+MAX_REQUESTS_PER_WINDOW = 30
 WINDOW_SECONDS = 3600  # 1 gio
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent / "generated"
