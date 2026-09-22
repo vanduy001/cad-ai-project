@@ -9,10 +9,10 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
 import json
 
-SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft")
+SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block")
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
-    "keyway", "bolt_circle", "radial_hole", "counterbore",
+    "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs",
 )
 
 
@@ -94,6 +94,7 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "shaft": ["diameter", "length"],
         "housing": ["length", "width", "height", "wall_thickness"],
         "stepped_shaft": [],
+        "pillow_block": ["length", "depth", "height", "base_height", "top_width", "seat_radius"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
@@ -116,6 +117,16 @@ def validate_spec(spec: PartSpec) -> list[str]:
                         errors.append(f"segments[{i}] thieu truong '{key}'")
                     elif not isinstance(seg[key], (int, float)) or seg[key] <= 0:
                         errors.append(f"segments[{i}]['{key}'] phai la so duong")
+
+    if spec.part_type == "pillow_block":
+        bh = spec.base_dimensions.get("base_height")
+        h = spec.base_dimensions.get("height")
+        if isinstance(bh, (int, float)) and isinstance(h, (int, float)) and bh >= h:
+            errors.append("pillow_block: base_height phai nho hon height")
+        tw = spec.base_dimensions.get("top_width")
+        length = spec.base_dimensions.get("length")
+        if isinstance(tw, (int, float)) and isinstance(length, (int, float)) and tw >= length:
+            errors.append("pillow_block: top_width phai nho hon length")
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))

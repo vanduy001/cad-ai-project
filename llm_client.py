@@ -22,9 +22,9 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft",
+  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block",
   "base_dimensions": {...tuy part_type, don vi mm...},
-  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore", "params": {...}} ],
+  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore"|"side_lugs", "params": {...}} ],
   "constraints": [],
   "material": "ten vat lieu hoac null",
   "tolerance": 0.1
@@ -35,8 +35,12 @@ Quy tac base_dimensions theo part_type:
   bracket:       {"length":..,"width":..,"thickness":.., "leg_height":.., "leg_thickness":..}  (leg_height/leg_thickness dung khi can gia do hinh chu L that, bo trong neu chi can khoi hop don gian)
   flange:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   shaft:         {"diameter":..,"length":..}
-  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}  (dung khi truc co tu 2 doan duong kinh khac nhau tro len)
+  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
+  pillow_block:  {"length":..,"depth":..,"height":..,"base_height":..,"top_width":..,"seat_radius":..}
+    (goi do truc: length=chieu rong ngang, depth=chieu sau (truc cua ranh cong), height=chieu cao tong,
+     base_height=chieu cao tuong thang truoc khi vat, top_width=be rong mat phang tren cung giua 2 mat vat,
+     seat_radius=ban kinh ranh cong dat truc, cat vao dung giua mat tren)
 
 Quy tac feature params:
   hole:        {"diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
@@ -45,17 +49,20 @@ Quy tac feature params:
   pocket:      {"length":..,"width":..,"depth":..,"position":[x,y]}
   boss:        {"diameter":..,"height":..,"position":[x,y]}
   slot:        {"length":..,"width":..,"depth":"through"|<so>, "position":[x,y], "angle":0}
-  keyway:      {"width":.., "depth":.., "length":.., "z_start":.., "shaft_diameter":..}  (ranh then, dung cho shaft/stepped_shaft)
-  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}  (vong lo bat vit bo tri deu quanh tam, dung cho flange)
-  radial_hole: {"diameter":.., "height_from_base":..}  (lo khoan ngang xuyen qua truc, vuong goc truc chinh, dung cho shaft/stepped_shaft; height_from_base tinh tu day Z=0)
-  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}  (lo bac/lo chim dau vit: lo nho xuyen suot + lo to nong o mat tren de chim dau bu long)
+  keyway:      {"width":.., "depth":.., "length":.., "z_start":.., "shaft_diameter":..}
+  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}
+  radial_hole: {"diameter":.., "height_from_base":..}
+  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}
+    (dung cho pillow_block de tao lo bac giua khoi: dat position [0,0], KHONG dung "hole" chong len vi tri ranh cong seat_radius)
+  side_lugs:   {"lug_length":.., "lug_thickness":..}
+    (chi dung cho pillow_block: them 2 tai bat bu-long nhoi ra o 2 dau theo truc length, lug_thickness mac dinh bang base_height neu khong ghi ro)
 
 positions/position tinh theo he toa do tam mat phang dat tai tam hinh hoc cua base.
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau cua nguoi dung KHONG the mo ta bang cac part_type va feature_type o tren
 (vi du: co ren, banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
-mat cat bac phuc tap nhieu tang khong doi xung...),
+mat cat bac phuc tap nhieu tang khong doi xung, hop chu thap voi cac ranh xe doc phuc tap...),
 HOAC khong du thong tin de xac dinh kich thuoc co ban,
 HOAC khong phai la mo ta 1 chi tiet co khi (cau vo nghia, cau hoi khac, chao hoi...),
 thi KHONG duoc co gang ep vao 1 part_type bat ky de tra loi cho co.
