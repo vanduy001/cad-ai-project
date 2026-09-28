@@ -2,9 +2,10 @@
 web/app.py
 ============
 Backend FastAPI cho website AI CAD.
-Chay: uvicorn web.app:app --reload
+Chay: python run_server.py   (hoac: uvicorn web.app:app --reload)
 """
 
+import re
 import sys
 import uuid
 import pathlib
@@ -35,6 +36,66 @@ class GenerateRequest(BaseModel):
     request: str
 
 
+def _build_pipeline_info(log) -> dict:
+    """Gom du lieu tung buoc de trang web hien thi:
+    NL -> yeu cau ky thuat -> JSON spec -> code CadQuery -> kiem tra -> STEP.
+    """
+    last = log.history[-1] if log.history else {}
+
+    # Spec va code cua vong cuoi cung (neu co)
+    spec = log.final_spec or last.get("spec")
+    code = None
+    for entry in reversed(log.history):
+        if entry.get("code"):
+            code = entry["code"]
+            break
+
+    requirements = None
+    if spec:
+        requirements = {
+            "part_type": spec.get("part_type"),
+            "base_dimensions": spec.get("base_dimensions"),
+            "features": spec.get("features", []),
+            "material": spec.get("material"),
+            "tolerance": spec.get("tolerance"),
+        }
+
+    # Tom tat tung vong lap (khong gui lai code de nhe response)
+    iterations = [
+        {
+            "iteration": h.get("iteration"),
+            "stage": h.get("stage"),
+            "errors": h.get("errors", []),
+            "metrics": h.get("metrics", {}),
+        }
+        for h in log.history
+    ]
+
+    # Buoc nao da chay xong / dung o dau
+    if not log.history:
+        failed_at = "nl_to_spec"
+    elif log.success:
+        failed_at = None
+    else:
+        failed_at = last.get("stage")
+
+    return {
+        "nl_request": log.nl_request,
+        "requirements": requirements,
+        "spec": spec,
+        "code": code,
+        "validation": {
+            "is_valid": log.success,
+            "errors": log.final_errors,
+            "metrics": log.final_metrics,
+        },
+        "n_iterations": log.n_iterations,
+        "elapsed_sec": log.elapsed_sec,
+        "failed_at": failed_at,
+        "iterations": iterations,
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     return INDEX_HTML.read_text(encoding="utf-8")
@@ -62,6 +123,7 @@ def generate(request: Request, body: GenerateRequest):
         return {"success": False, "message": f"Loi cau hinh Gemini API key: {e}"}
 
     log = run_pipeline(body.request, client, output_step_path=str(output_path))
+    info = _build_pipeline_info(log)
 
     if log.success:
         return {
@@ -69,15 +131,19 @@ def generate(request: Request, body: GenerateRequest):
             "message": "Da tao mo hinh 3D thanh cong.",
             "download_url": f"/download/{file_id}",
             "metrics": log.final_metrics,
+            "pipeline": info,
         }
     return {
         "success": False,
         "message": "Khong the tao mo hinh. Loi: " + "; ".join(log.final_errors),
+        "pipeline": info,
     }
 
 
 @app.get("/download/{file_id}")
 def download(file_id: str):
+    if not re.fullmatch(r"[0-9a-f]{8}", file_id):
+        return {"error": "File khong hop le"}
     path = OUTPUT_DIR / f"{file_id}.step"
     if not path.exists():
         return {"error": "File khong ton tai"}

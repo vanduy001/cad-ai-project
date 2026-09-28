@@ -40,8 +40,8 @@ h1 { font-size: 34px; line-height: 1.25; margin: 0 0 14px; font-weight: 700; let
 .ptitle { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
 .pdesc { font-size: 12px; color: var(--text-faint); line-height: 1.4; }
 
-.workspace { max-width: 1080px; margin: 24px auto 60px; padding: 0 40px; display: grid; grid-template-columns: 1fr 0.9fr 1fr; gap: 20px; }
-@media (max-width: 980px) { .workspace { grid-template-columns: 1fr; } }
+.workspace { max-width: 1080px; margin: 24px auto 24px; padding: 0 40px; display: grid; grid-template-columns: 1fr 0.9fr 1fr; gap: 20px; }
+@media (max-width: 980px) { .workspace { grid-template-columns: 1fr; } .progress-steps { grid-template-columns: 1fr; } }
 
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
 .panel-label { font-size: 12px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; margin-bottom: 6px; }
@@ -62,12 +62,21 @@ textarea:focus { outline: none; border-color: var(--teal); }
 .hint { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; text-align: center; }
 
 /* preview panel */
-.preview-box { height: 200px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition: border-color .3s; }
+.preview-box { min-height: 200px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition: border-color .3s; padding: 12px; }
 .preview-box.working { border-color: var(--teal); }
 .preview-box.done { border-color: var(--success); }
 .preview-box.error { border-color: var(--danger); }
 .preview-icon { width: 64px; height: 64px; transition: opacity .3s; }
 .preview-caption { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 12px; }
+.pl-list { list-style: none; margin: 0; padding: 0; width: 100%; }
+.pl-item { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 13px; color: var(--text-faint); }
+.pl-mark { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #06201c; }
+.pl-item.done { color: var(--text); }
+.pl-item.done .pl-mark { background: var(--success); border-color: var(--success); }
+.pl-item.error { color: #fca5a5; }
+.pl-item.error .pl-mark { background: var(--danger); border-color: var(--danger); }
+.pl-item.running { color: var(--teal); }
+.pl-item.running .pl-mark { border-color: var(--teal); border-top-color: transparent; animation: spin .8s linear infinite; }
 
 /* spec panel */
 .spec-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -85,6 +94,24 @@ textarea:focus { outline: none; border-color: var(--teal); }
 .download-btn:hover { filter: brightness(1.06); }
 .error-box { margin-top: 14px; padding: 12px 14px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); border-radius: 8px; font-size: 12.5px; color: #fca5a5; line-height: 1.5; }
 .info-box { margin-top: 14px; padding: 12px 14px; background: rgba(45,212,191,0.06); border: 1px solid rgba(45,212,191,0.25); border-radius: 8px; font-size: 12.5px; color: #7fe6d8; line-height: 1.5; }
+
+/* pipeline detail */
+.detail-wrap { max-width: 1080px; margin: 0 auto 60px; padding: 0 40px; }
+.detail-wrap .panel { padding: 22px 26px; }
+details.dstep { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--surface-2); }
+details.dstep > summary { cursor: pointer; padding: 12px 14px; font-size: 13.5px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+details.dstep > summary::-webkit-details-marker { display: none; }
+details.dstep.done > summary .tag { color: var(--success); }
+details.dstep.error > summary .tag { color: var(--danger); }
+details.dstep.pending > summary .tag { color: var(--text-faint); }
+.tag { font-size: 11.5px; font-weight: 600; }
+.dbody { padding: 0 14px 14px; }
+.io-label { font-size: 11px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; margin: 12px 0 6px; }
+.io-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+pre.code { margin: 0; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; color: #c9d3e6; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+table.req { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.req td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.req td:first-child { color: var(--text-dim); width: 34%; }
 
 footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-faint); flex-wrap: wrap; gap: 8px; }
 .spinner { display: inline-block; width: 13px; height: 13px; margin-right: 7px; border: 2px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
@@ -147,7 +174,7 @@ footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex;
         <path d="M32 6 L32 32 M32 32 L58 20 M32 32 L6 20 M32 32 L32 58" stroke="#2dd4bf" stroke-width="1.5" opacity="0.5"/>
       </svg>
     </div>
-    <div class="preview-caption" id="preview-caption">Biểu tượng trạng thái xử lý — không phải xem trước hình học thật</div>
+    <div class="preview-caption" id="preview-caption">Các bước xử lý sẽ hiện ở đây sau khi bạn bấm Tạo bản vẽ</div>
   </div>
 
   <div class="panel">
@@ -163,12 +190,35 @@ footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex;
   </div>
 </div>
 
+<div class="detail-wrap" id="detail-wrap" style="display:none">
+  <div class="panel">
+    <div class="panel-label">PIPELINE</div>
+    <h2>Chi tiết từng bước: đầu vào và đầu ra</h2>
+    <div id="detail-list"></div>
+  </div>
+</div>
+
 <footer>
   <span>CAD AI </span>
   <span>Pipeline: NL → Spec → CadQuery → STEP</span>
 </footer>
 
 <script>
+const PL_STEPS = [
+  'Ngôn ngữ tự nhiên',
+  'AI sinh JSON spec',
+  'Kiểm tra cấu trúc spec',
+  'Sinh code CadQuery',
+  'Dựng hình & kiểm tra kích thước',
+  'Xuất file STEP'
+];
+// stage mà server báo lỗi -> chỉ số bước bị lỗi
+const FAIL_INDEX = { nl_to_spec: 1, spec_validation: 2, codegen: 3, geometry_validation: 4 };
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function fillExample(el) { document.getElementById('req').value = el.textContent; }
 
 function setStep(n) {
@@ -182,17 +232,111 @@ function setStep(n) {
 
 function setPreview(state) {
   const box = document.getElementById('preview-box');
-  const icon = document.getElementById('preview-icon');
   box.className = 'preview-box ' + state;
-  const colors = { idle: '#2dd4bf', working: '#2dd4bf', done: '#4ade80', error: '#f87171' };
-  const c = colors[state] || '#2dd4bf';
-  icon.querySelectorAll('path').forEach(p => p.setAttribute('stroke', c));
+  const icon = document.getElementById('preview-icon');
+  if (icon) {
+    const colors = { idle: '#2dd4bf', working: '#2dd4bf', done: '#4ade80', error: '#f87171' };
+    const c = colors[state] || '#2dd4bf';
+    icon.querySelectorAll('path').forEach(p => p.setAttribute('stroke', c));
+  }
 }
 
 function setBadge(state, text) {
   const b = document.getElementById('status-badge');
   b.className = 'status-badge ' + state;
   b.textContent = text;
+}
+
+// trạng thái từng bước: done | error | pending
+function stepStates(p, success) {
+  const states = PL_STEPS.map(() => 'pending');
+  if (success) return states.map(() => 'done');
+  const fi = FAIL_INDEX[p && p.failed_at];
+  const failAt = fi === undefined ? 1 : fi;
+  for (let i = 0; i < PL_STEPS.length; i++) {
+    if (i < failAt) states[i] = 'done';
+    else if (i === failAt) states[i] = 'error';
+  }
+  return states;
+}
+
+function renderPreviewList(states, runningIdx) {
+  const box = document.getElementById('preview-box');
+  let html = '<ul class="pl-list">';
+  PL_STEPS.forEach((name, i) => {
+    let cls = states ? states[i] : (i < runningIdx ? 'done' : (i === runningIdx ? 'running' : 'pending'));
+    const mark = cls === 'done' ? '✓' : (cls === 'error' ? '!' : '');
+    html += '<li class="pl-item ' + cls + '"><span class="pl-mark">' + mark + '</span>' + esc(name) + '</li>';
+  });
+  box.innerHTML = html + '</ul>';
+}
+
+function kv(rows) {
+  return '<table class="req">' + rows.map(r =>
+    '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
+}
+
+function featureText(f) {
+  const params = Object.entries(f.params || {}).map(([k, v]) => k + '=' + JSON.stringify(v)).join(', ');
+  return esc(f.type) + (params ? ' (' + esc(params) + ')' : '');
+}
+
+function renderDetail(data) {
+  const p = data.pipeline;
+  const wrap = document.getElementById('detail-wrap');
+  if (!p) { wrap.style.display = 'none'; return; }
+  const st = stepStates(p, data.success);
+  const dims = (p.requirements && p.requirements.base_dimensions) || {};
+  const feats = (p.requirements && p.requirements.features) || [];
+
+  const bodies = [
+    // 0
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Người dùng nhập</div>' +
+    '<div class="io-label">ĐẦU RA</div><pre class="code">' + esc(p.nl_request) + '</pre>',
+    // 1
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Câu tiếng Việt ở bước 1</div>' +
+    '<div class="io-label">ĐẦU RA: YÊU CẦU KỸ THUẬT</div>' +
+    (p.requirements ? kv([
+      ['Loại chi tiết', esc(p.requirements.part_type)],
+      ['Kích thước cơ bản', '<code>' + esc(JSON.stringify(dims)) + '</code>'],
+      ['Các feature', feats.length ? feats.map(featureText).join('<br>') : 'Không có'],
+      ['Vật liệu', esc(p.requirements.material || 'Không ghi')],
+      ['Dung sai', esc(p.requirements.tolerance)]
+    ]) : '<div class="io-note">Chưa có (AI không tạo được spec)</div>') +
+    '<div class="io-label">ĐẦU RA: JSON SPEC</div><pre class="code">' +
+    esc(p.spec ? JSON.stringify(p.spec, null, 2) : 'Không có') + '</pre>',
+    // 2
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">JSON spec</div>' +
+    '<div class="io-label">ĐẦU RA</div><div class="io-note">Danh sách lỗi cấu trúc (rỗng nếu hợp lệ). Nếu có lỗi, AI được gọi để sửa spec rồi lặp lại.</div>',
+    // 3
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">JSON spec hợp lệ</div>' +
+    '<div class="io-label">ĐẦU RA: CODE CADQUERY</div><pre class="code">' +
+    esc(p.code || 'Chưa sinh được code') + '</pre>',
+    // 4
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Code CadQuery + spec</div>' +
+    '<div class="io-label">ĐẦU RA: KẾT QUẢ KIỂM TRA</div>' +
+    kv([
+      ['Hợp lệ', p.validation.is_valid ? 'Có' : 'Không'],
+      ['Sai lệch kích thước', '<code>' + esc(JSON.stringify(p.validation.metrics || {})) + '</code>'],
+      ['Lỗi', (p.validation.errors && p.validation.errors.length) ? p.validation.errors.map(esc).join('<br>') : 'Không có'],
+      ['Số vòng lặp', esc(p.n_iterations)],
+      ['Thời gian', esc(p.elapsed_sec) + ' s']
+    ]),
+    // 5
+    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Solid 3D đã kiểm tra</div>' +
+    '<div class="io-label">ĐẦU RA</div><div class="io-note">' +
+    (data.success ? 'File .step, tải ở khung Kết quả.' : 'Chưa có file.') + '</div>'
+  ];
+
+  const tagText = { done: 'Xong', error: 'Lỗi', pending: 'Chưa chạy' };
+  let html = '';
+  PL_STEPS.forEach((name, i) => {
+    html += '<details class="dstep ' + st[i] + '"' + (st[i] === 'error' ? ' open' : '') + '>' +
+      '<summary><span>' + (i + 1) + '. ' + esc(name) + '</span><span class="tag">' + tagText[st[i]] + '</span></summary>' +
+      '<div class="dbody">' + bodies[i] + '</div></details>';
+  });
+  document.getElementById('detail-list').innerHTML = html;
+  wrap.style.display = 'block';
 }
 
 async function generate() {
@@ -205,6 +349,9 @@ async function generate() {
   setStep(2);
   setPreview('working');
   setBadge('working', 'Đang xử lý');
+  renderPreviewList(null, 1);
+  document.getElementById('preview-caption').textContent = 'Đang xử lý...';
+  document.getElementById('detail-wrap').style.display = 'none';
   resultArea.innerHTML = '<div class="info-box"><span class="spinner"></span>Đang phân tích yêu cầu và dựng mô hình 3D (10–90 giây)...</div>';
   document.getElementById('v-iter').textContent = '—';
   document.getElementById('v-err').textContent = '—';
@@ -216,27 +363,34 @@ async function generate() {
       body: JSON.stringify({request: req})
     });
     const data = await res.json();
+    const p = data.pipeline;
+
+    if (p) {
+      renderPreviewList(stepStates(p, data.success));
+      document.getElementById('preview-caption').textContent =
+        'Pipeline: ' + p.n_iterations + ' vòng lặp, ' + p.elapsed_sec + ' s';
+      document.getElementById('v-iter').textContent = p.n_iterations;
+      renderDetail(data);
+    }
 
     if (data.success) {
       setStep(3);
       setPreview('done');
       setBadge('done', 'Hoàn tất');
-      const metricsVals = data.metrics ? Object.values(data.metrics) : [];
-      const errVal = metricsVals.length ? Math.max(...metricsVals.filter(v => typeof v === 'number')).toFixed(3) + ' mm' : '0.000 mm';
-      document.getElementById('v-iter').textContent = data.n_iterations || '1';
-      document.getElementById('v-err').textContent = errVal;
-      resultArea.innerHTML = '<a class="download-btn" href="' + data.download_url + '">Tải file STEP</a>';
+      const nums = data.metrics ? Object.values(data.metrics).filter(v => typeof v === 'number') : [];
+      document.getElementById('v-err').textContent = (nums.length ? Math.max(...nums) : 0).toFixed(3) + ' mm';
+      resultArea.innerHTML = '<a class="download-btn" href="' + esc(data.download_url) + '">Tải file STEP</a>';
     } else {
       setStep(1);
       setPreview('error');
       setBadge('error', 'Không thành công');
-      resultArea.innerHTML = '<div class="error-box">' + data.message + '</div>';
+      resultArea.innerHTML = '<div class="error-box">' + esc(data.message) + '</div>';
     }
   } catch (e) {
     setStep(1);
     setPreview('error');
     setBadge('error', 'Lỗi kết nối');
-    resultArea.innerHTML = '<div class="error-box">Không thể kết nối tới máy chủ: ' + e + '</div>';
+    resultArea.innerHTML = '<div class="error-box">Không thể kết nối tới máy chủ: ' + esc(e) + '</div>';
   }
   btn.disabled = false;
 }
