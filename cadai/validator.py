@@ -16,8 +16,8 @@ Danh sách errors được thiết kế để ĐƯA THẲNG vào prompt sửa l�
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from spec_schema import PartSpec
-from cq_executor import ExecutionResult
+from cadai.spec_schema import PartSpec
+from cadai.cq_executor import ExecutionResult
 
 
 @dataclass
@@ -159,8 +159,8 @@ def validate_design(spec: PartSpec, exec_result: ExecutionResult) -> ValidationR
 
 
 if __name__ == "__main__":
-    from spec_schema import example_plate_spec
-    from cq_executor import ExecutionResult
+    from cadai.spec_schema import example_plate_spec
+    from cadai.cq_executor import ExecutionResult
 
     spec = example_plate_spec()
 

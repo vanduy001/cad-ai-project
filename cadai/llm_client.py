@@ -15,7 +15,7 @@ import os
 import json
 import re
 from abc import ABC, abstractmethod
-from spec_schema import PartSpec, validate_spec
+from cadai.spec_schema import PartSpec, validate_spec
 
 SYSTEM_PROMPT = """Ban la bo chuyen doi yeu cau thiet ke co khi sang JSON dac ta tham so.
 Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dung markdown code fence.
@@ -137,7 +137,7 @@ class DemoLLMClient(LLMClient):
     """
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
-        from spec_schema import example_plate_spec
+        from cadai.spec_schema import example_plate_spec
 
         text = nl_request.lower()
         if "tam" in text or "plate" in text:

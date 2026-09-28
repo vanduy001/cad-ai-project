@@ -26,11 +26,11 @@ import argparse
 import time
 from dataclasses import dataclass, field
 
-from spec_schema import PartSpec, validate_spec
-from cq_generator import generate_cadquery_code, CodeGenError
-from cq_executor import export_step
-from validator import validate_design, ValidationReport
-from llm_client import get_default_client, LLMClient
+from cadai.spec_schema import PartSpec, validate_spec
+from cadai.cq_generator import generate_cadquery_code, CodeGenError
+from cadai.cq_executor import export_step
+from cadai.validator import validate_design, ValidationReport
+from cadai.llm_client import get_default_client, LLMClient
 
 
 @dataclass

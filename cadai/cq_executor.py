@@ -141,8 +141,8 @@ with open({result_path!r}, "w") as f:
 
 
 if __name__ == "__main__":
-    from spec_schema import example_plate_spec
-    from cq_generator import generate_cadquery_code
+    from cadai.spec_schema import example_plate_spec
+    from cadai.cq_generator import generate_cadquery_code
 
     code = generate_cadquery_code(example_plate_spec())
     print("--- Code sinh ra ---")

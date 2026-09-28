@@ -1,5 +1,5 @@
-from spec_schema import PartSpec, Feature, validate_spec
-from cq_generator import generate_cadquery_code
+from cadai.spec_schema import PartSpec, Feature, validate_spec
+from cadai.cq_generator import generate_cadquery_code
 
 spec = PartSpec(
     part_type="pillow_block",

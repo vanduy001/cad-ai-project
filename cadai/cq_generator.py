@@ -5,7 +5,7 @@ Chuyen PartSpec -> chuoi code CadQuery (Python). Template-based.
 """
 
 from __future__ import annotations
-from spec_schema import PartSpec, Feature
+from cadai.spec_schema import PartSpec, Feature
 
 
 class CodeGenError(ValueError):
@@ -336,7 +336,7 @@ def generate_cadquery_code(spec: PartSpec) -> str:
 
 
 if __name__ == "__main__":
-    from spec_schema import example_plate_spec
+    from cadai.spec_schema import example_plate_spec
 
     code = generate_cadquery_code(example_plate_spec())
     print(code)

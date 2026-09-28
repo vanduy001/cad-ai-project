@@ -17,8 +17,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
-from pipeline import run_pipeline
-from gemini_client import get_gemini_client
+from cadai.pipeline import run_pipeline
+from cadai.gemini_client import get_gemini_client
 
 app = FastAPI()
 

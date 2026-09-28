@@ -10,10 +10,10 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from spec_schema import PartSpec, Feature, Constraint, validate_spec, example_plate_spec
-from cq_generator import generate_cadquery_code, CodeGenError
-from cq_executor import ExecutionResult
-from validator import validate_design
+from cadai.spec_schema import PartSpec, Feature, Constraint, validate_spec, example_plate_spec
+from cadai.cq_generator import generate_cadquery_code, CodeGenError
+from cadai.cq_executor import ExecutionResult
+from cadai.validator import validate_design
 
 
 def test_example_spec_is_valid():

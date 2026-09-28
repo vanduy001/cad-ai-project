@@ -14,8 +14,8 @@ import os
 import json
 import time
 
-from spec_schema import PartSpec
-from llm_client import LLMClient, SYSTEM_PROMPT, _strip_code_fence
+from cadai.spec_schema import PartSpec
+from cadai.llm_client import LLMClient, SYSTEM_PROMPT, _strip_code_fence
 
 
 class GeminiLLMClient(LLMClient):
