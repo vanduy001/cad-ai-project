@@ -12,7 +12,7 @@ import json
 SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block")
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
-    "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs",
+    "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
 )
 
 

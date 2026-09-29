@@ -24,7 +24,7 @@ Schema JSON bat buoc:
 {
   "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block",
   "base_dimensions": {...tuy part_type, don vi mm...},
-  "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore"|"side_lugs", "params": {...}} ],
+ "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore"|"side_lugs"|"thread", "params": {...}} ],
   "constraints": [],
   "material": "ten vat lieu hoac null",
   "tolerance": 0.1
@@ -54,14 +54,16 @@ Quy tac feature params:
   radial_hole: {"diameter":.., "height_from_base":..}
   counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}
     (dung cho pillow_block de tao lo bac giua khoi: dat position [0,0], KHONG dung "hole" chong len vi tri ranh cong seat_radius)
-  side_lugs:   {"lug_length":.., "lug_thickness":..}
+   side_lugs:   {"lug_length":.., "lug_thickness":..}
     (chi dung cho pillow_block: them 2 tai bat bu-long nhoi ra o 2 dau theo truc length, lug_thickness mac dinh bang base_height neu khong ghi ro)
+  thread:      {"designation":"M8" (hoac M6, M10...), "diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
+    (chi danh dau lo ren bang ky hieu, KHONG cat ren that trong hinh 3D; diameter la duong kinh lo khoan truoc khi ta-ro)
 
 positions/position tinh theo he toa do tam mat phang dat tai tam hinh hoc cua base.
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau cua nguoi dung KHONG the mo ta bang cac part_type va feature_type o tren
-(vi du: co ren, banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
+(vi du: banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
 mat cat bac phuc tap nhieu tang khong doi xung, hop chu thap voi cac ranh xe doc phuc tap...),
 HOAC khong du thong tin de xac dinh kich thuoc co ban,
 HOAC khong phai la mo ta 1 chi tiet co khi (cau vo nghia, cau hoi khac, chao hoi...),
