@@ -31,9 +31,21 @@ OUTPUT_DIR = pathlib.Path(__file__).resolve().parent / "generated"
 OUTPUT_DIR.mkdir(exist_ok=True)
 INDEX_HTML = pathlib.Path(__file__).resolve().parent / "index.html"
 
+OVERLOAD_MESSAGE = (
+    "He thong AI dang qua tai (dang dung key Gemini mien phi, bi gioi han uu "
+    "tien xu ly vao gio cao diem). Day la gioi han tu phia Google, khong phai "
+    "loi cua he thong. Vui long doi 1-2 phut roi bam Tao ban ve lai, hoac thu "
+    "vao gio khac it nguoi dung hon."
+)
+
 
 class GenerateRequest(BaseModel):
     request: str
+
+
+def _is_overload_error(errors: list[str]) -> bool:
+    text = " ".join(errors).lower()
+    return any(kw in text for kw in ("qua tai", "overload", "503", "unavailable"))
 
 
 def _build_pipeline_info(log) -> dict:
@@ -133,6 +145,14 @@ def generate(request: Request, body: GenerateRequest):
             "metrics": log.final_metrics,
             "pipeline": info,
         }
+
+    if _is_overload_error(log.final_errors):
+        return {
+            "success": False,
+            "message": OVERLOAD_MESSAGE,
+            "pipeline": info,
+        }
+
     return {
         "success": False,
         "message": "Khong the tao mo hinh. Loi: " + "; ".join(log.final_errors),

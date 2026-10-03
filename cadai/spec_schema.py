@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
 import json
 
-SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block")
+SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block", "bolt")
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
@@ -95,6 +95,7 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "housing": ["length", "width", "height", "wall_thickness"],
         "stepped_shaft": [],
         "pillow_block": ["length", "depth", "height", "base_height", "top_width", "seat_radius"],
+        "bolt": ["diameter", "length"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
