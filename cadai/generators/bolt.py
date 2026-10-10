@@ -1,14 +1,15 @@
-"""Bu-long don gian: dau luc giac + than tru, vat canh o dau mut than.
-Than KHONG co duong ren xoan 3D thuc -- day la mo hinh don gian hoa, giong
-cach lam voi tinh nang 'thread' (chi danh dau ky hieu, chua cat ren that)."""
+"""Bu-long: dau luc giac + than tru.
+Than luon TRON TRON (khong ren xoan 3D that) -- da thu nghiem cat ren that
+bang sweep() theo duong xoan oc nhung bi treo/loi OCCT voi so vong ren lon,
+khong on dinh du de dung san xuat. "real_thread" van duoc chap nhan trong
+spec (de khong vo pipeline neu AI dat co) nhung hien khong lam thay doi
+hinh hoc -- chi la placeholder cho huong giai quyet khac sau nay."""
 
 
 def build(spec) -> str:
     d = spec.base_dimensions
     diameter = d["diameter"]
     length = d["length"]
-    # head_width/head_height/chamfer la tuy chon, co gia tri mac dinh xap xi
-    # theo ty le thuong gap cua bu-long luc giac (khong phai bang ISO chinh xac)
     head_width = d.get("head_width", round(1.5 * diameter + 6, 1))
     head_height = d.get("head_height", round(0.7 * diameter, 1))
     chamfer = d.get("chamfer", round(diameter * 0.1, 2))

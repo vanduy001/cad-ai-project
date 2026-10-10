@@ -4,3 +4,5 @@
 
 cadquery>=2.4
 anthropic>=0.40
+groq
+requests

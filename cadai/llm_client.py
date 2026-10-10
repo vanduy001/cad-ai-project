@@ -22,7 +22,7 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block" | "bolt",
+  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block" | "bolt" | "nut",
   "base_dimensions": {...tuy part_type, don vi mm...},
   "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore"|"side_lugs"|"thread", "params": {...}} ],
   "constraints": [],
@@ -42,10 +42,15 @@ Quy tac base_dimensions theo part_type:
      base_height=chieu cao tuong thang truoc khi vat, top_width=be rong mat phang tren cung giua 2 mat vat,
      seat_radius=ban kinh ranh cong dat truc, cat vao dung giua mat tren)
   bolt:          {"diameter":..,"length":.., "head_width":.. (tuy chon), "head_height":.. (tuy chon), "chamfer":.. (tuy chon)}
-    (bu-long don gian: dau luc giac 6 canh + than tru, vat canh o dau mut than, KHONG co duong ren
+    (bu-long don gian: dau luc giac + than tru, vat canh o dau mut than, KHONG co duong ren
      xoan 3D thuc (chi la mo hinh hoa don gian, giong vat the thuc); diameter la duong kinh than
      (vd bu-long M8 thi diameter=8), length la chieu dai than tinh tu day than den duoi dau bu-long;
      head_width/head_height/chamfer neu khong ghi ro se dung ty le xap xi thong thuong theo diameter)
+  nut:           {"diameter":..,"height":.., "width":.. (tuy chon)}
+    (dai oc: khoi luc giac co lo xuyen giua; diameter la duong kinh lo (= duong kinh
+     danh nghia bu-long di kem, vd dai oc M8 thi diameter=8), height la do day dai oc;
+     width (be rong doi dien 2 canh luc giac) neu khong ghi ro se dung ty le xap xi
+     thong thuong theo diameter)
 
 Quy tac feature params:
   hole:        {"diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
@@ -70,7 +75,7 @@ QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau cua nguoi dung KHONG the mo ta bang cac part_type va feature_type o tren
 (vi du: banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
 mat cat bac phuc tap nhieu tang khong doi xung, hop chu thap voi cac ranh xe doc phuc tap,
-bu-long co ren xoan 3D thuc chi tiet...),
+bu-long/dai oc co ren xoan 3D thuc chi tiet (chi ho tro mo hinh hoa don gian khong ren that)...),
 HOAC khong du thong tin de xac dinh kich thuoc co ban,
 HOAC khong phai la mo ta 1 chi tiet co khi (cau vo nghia, cau hoi khac, chao hoi...),
 thi KHONG duoc co gang ep vao 1 part_type bat ky de tra loi cho co.

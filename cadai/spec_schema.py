@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
 import json
 
-SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block", "bolt")
+SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block", "bolt", "nut")
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
@@ -96,6 +96,7 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "stepped_shaft": [],
         "pillow_block": ["length", "depth", "height", "base_height", "top_width", "seat_radius"],
         "bolt": ["diameter", "length"],
+        "nut": ["diameter", "height"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
@@ -128,6 +129,12 @@ def validate_spec(spec: PartSpec) -> list[str]:
         length = spec.base_dimensions.get("length")
         if isinstance(tw, (int, float)) and isinstance(length, (int, float)) and tw >= length:
             errors.append("pillow_block: top_width phai nho hon length")
+
+    if spec.part_type == "nut":
+        dia = spec.base_dimensions.get("diameter")
+        width = spec.base_dimensions.get("width")
+        if isinstance(dia, (int, float)) and isinstance(width, (int, float)) and width <= dia:
+            errors.append("nut: width (be rong luc giac) phai lon hon diameter (duong kinh lo)")
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))

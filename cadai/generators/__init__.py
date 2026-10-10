@@ -3,7 +3,7 @@ cadai/generators/__init__.py
 ================================
 Gom ham build() cua tung part_type thanh 1 dict BUILDERS.
 """
-from . import plate, bracket, flange, shaft, stepped_shaft, housing, pillow_block, bolt
+from . import plate, bracket, flange, shaft, stepped_shaft, housing, pillow_block, bolt, nut
 
 BUILDERS = {
     "plate": plate.build,
@@ -14,4 +14,5 @@ BUILDERS = {
     "housing": housing.build,
     "pillow_block": pillow_block.build,
     "bolt": bolt.build,
+    "nut": nut.build,
 }

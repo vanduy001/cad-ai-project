@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 from cadai.pipeline import run_pipeline
-from cadai.gemini_client import get_gemini_client
+from cadai.openrouter_client import get_openrouter_client
 
 app = FastAPI()
 
@@ -32,10 +32,9 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 INDEX_HTML = pathlib.Path(__file__).resolve().parent / "index.html"
 
 OVERLOAD_MESSAGE = (
-    "He thong AI dang qua tai (dang dung key Gemini mien phi, bi gioi han uu "
-    "tien xu ly vao gio cao diem). Day la gioi han tu phia Google, khong phai "
-    "loi cua he thong. Vui long doi 1-2 phut roi bam Tao ban ve lai, hoac thu "
-    "vao gio khac it nguoi dung hon."
+    "He thong AI dang bi gioi han rate limit (dang dung key OpenRouter mien phi). "
+    "Day la gioi han tam thoi, khong phai loi cua he thong. Vui long doi vai "
+    "chuc giay roi bam Tao ban ve lai."
 )
 
 
@@ -130,7 +129,7 @@ def generate(request: Request, body: GenerateRequest):
     output_path = OUTPUT_DIR / f"{file_id}.step"
 
     try:
-        client = get_gemini_client()
+        client = get_openrouter_client() 
     except Exception as e:
         return {"success": False, "message": f"Loi cau hinh Gemini API key: {e}"}
 
