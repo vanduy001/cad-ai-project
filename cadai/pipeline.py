@@ -87,9 +87,9 @@ def run_pipeline(
         # --- Bước 4: chạy code + export STEP ---
         exec_result = export_step(code, output_step_path)
 
-        # Nếu bước 4 lỗi (OCCT crash, syntax error...) -> repair ngay
-        if exec_result.error:
-            exec_errors = [f"Lỗi dựng hình CadQuery: {exec_result.error}"]
+        # Nếu bước 4 lỗi -> repair ngay
+        if exec_result.error_message:
+            exec_errors = [f"Lỗi dựng hình CadQuery: {exec_result.error_message}"]
             iter_log["stage"] = "cq_execution"
             iter_log["errors"] = exec_errors
             log.history.append(iter_log)
