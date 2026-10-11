@@ -9,7 +9,11 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
 import json
 
-SUPPORTED_PART_TYPES = ("plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block", "bolt", "nut")
+SUPPORTED_PART_TYPES = (
+    "plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block",
+    "bolt", "nut",
+    "washer", "pin", "flat_plate", "countersunk_screw",
+)
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
@@ -97,6 +101,10 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "pillow_block": ["length", "depth", "height", "base_height", "top_width", "seat_radius"],
         "bolt": ["diameter", "length"],
         "nut": ["diameter", "height"],
+        "washer": ["outer_diameter", "inner_diameter", "thickness"],
+        "pin": ["diameter", "length"],
+        "flat_plate": ["length", "width", "thickness"],
+        "countersunk_screw": ["diameter", "length"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
@@ -135,6 +143,18 @@ def validate_spec(spec: PartSpec) -> list[str]:
         width = spec.base_dimensions.get("width")
         if isinstance(dia, (int, float)) and isinstance(width, (int, float)) and width <= dia:
             errors.append("nut: width (be rong luc giac) phai lon hon diameter (duong kinh lo)")
+
+    if spec.part_type == "washer":
+        od = spec.base_dimensions.get("outer_diameter")
+        id_ = spec.base_dimensions.get("inner_diameter")
+        if isinstance(od, (int, float)) and isinstance(id_, (int, float)) and id_ >= od:
+            errors.append("washer: inner_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "countersunk_screw":
+        dia = spec.base_dimensions.get("diameter")
+        hd = spec.base_dimensions.get("head_diameter")
+        if isinstance(dia, (int, float)) and isinstance(hd, (int, float)) and hd <= dia:
+            errors.append("countersunk_screw: head_diameter phai lon hon diameter")
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))

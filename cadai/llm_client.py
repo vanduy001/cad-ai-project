@@ -22,7 +22,7 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block" | "bolt" | "nut",
+  "part_type": "plate" | "bracket" | "flange" | "shaft" | "housing" | "stepped_shaft" | "pillow_block" | "bolt" | "nut" | "washer" | "pin" | "flat_plate" | "countersunk_screw",
   "base_dimensions": {...tuy part_type, don vi mm...},
   "features": [ {"type": "hole"|"fillet"|"chamfer"|"pocket"|"boss"|"slot"|"keyway"|"bolt_circle"|"radial_hole"|"counterbore"|"side_lugs"|"thread", "params": {...}} ],
   "constraints": [],
@@ -32,25 +32,27 @@ Schema JSON bat buoc:
 
 Quy tac base_dimensions theo part_type:
   plate:         {"length":..,"width":..,"thickness":..}
-  bracket:       {"length":..,"width":..,"thickness":.., "leg_height":.., "leg_thickness":..}  (leg_height/leg_thickness dung khi can gia do hinh chu L that, bo trong neu chi can khoi hop don gian)
+  bracket:       {"length":..,"width":..,"thickness":.., "leg_height":.., "leg_thickness":..}
   flange:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   shaft:         {"diameter":..,"length":..}
   stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
   pillow_block:  {"length":..,"depth":..,"height":..,"base_height":..,"top_width":..,"seat_radius":..}
-    (goi do truc: length=chieu rong ngang, depth=chieu sau (truc cua ranh cong), height=chieu cao tong,
-     base_height=chieu cao tuong thang truoc khi vat, top_width=be rong mat phang tren cung giua 2 mat vat,
-     seat_radius=ban kinh ranh cong dat truc, cat vao dung giua mat tren)
   bolt:          {"diameter":..,"length":.., "head_width":.. (tuy chon), "head_height":.. (tuy chon), "chamfer":.. (tuy chon)}
-    (bu-long don gian: dau luc giac + than tru, vat canh o dau mut than, KHONG co duong ren
-     xoan 3D thuc (chi la mo hinh hoa don gian, giong vat the thuc); diameter la duong kinh than
-     (vd bu-long M8 thi diameter=8), length la chieu dai than tinh tu day than den duoi dau bu-long;
-     head_width/head_height/chamfer neu khong ghi ro se dung ty le xap xi thong thuong theo diameter)
+    (bu-long don gian: dau luc giac + than tru, khong co ren xoan 3D thuc)
   nut:           {"diameter":..,"height":.., "width":.. (tuy chon)}
-    (dai oc: khoi luc giac co lo xuyen giua; diameter la duong kinh lo (= duong kinh
-     danh nghia bu-long di kem, vd dai oc M8 thi diameter=8), height la do day dai oc;
-     width (be rong doi dien 2 canh luc giac) neu khong ghi ro se dung ty le xap xi
-     thong thuong theo diameter)
+    (dai oc luc giac co lo xuyen giua; diameter la duong kinh lo)
+  washer:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
+    (vong dem: hinh tru phang co lo o giua; outer_diameter phai lon hon inner_diameter;
+     vd vong dem M8: inner_diameter=8.4, outer_diameter=16, thickness=1.6)
+  pin:           {"diameter":..,"length":.., "chamfer":.. (tuy chon)}
+    (chot tru / chot dinh vi: hinh tru thang, vat can 2 dau; chamfer mac dinh ~5% diameter)
+  flat_plate:    {"length":..,"width":..,"thickness":.., "hole_diameter":.. (tuy chon), "hole_margin":.. (tuy chon)}
+    (tam phang chu nhat; neu co hole_diameter se tu dong tao 4 lo goc cach mep hole_margin mm;
+     hole_margin mac dinh ~8% chieu nho nhat cua tam)
+  countersunk_screw: {"diameter":..,"length":.., "head_diameter":.. (tuy chon), "head_height":.. (tuy chon), "chamfer":.. (tuy chon)}
+    (vit dau chim: than tru + dau hinh non; diameter la duong kinh than;
+     head_diameter mac dinh ~2x diameter, head_height mac dinh ~0.6x diameter)
 
 Quy tac feature params:
   hole:        {"diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
@@ -63,23 +65,19 @@ Quy tac feature params:
   bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}
   radial_hole: {"diameter":.., "height_from_base":..}
   counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}
-    (dung cho pillow_block de tao lo bac giua khoi: dat position [0,0], KHONG dung "hole" chong len vi tri ranh cong seat_radius)
   side_lugs:   {"lug_length":.., "lug_thickness":..}
-    (chi dung cho pillow_block: them 2 tai bat bu-long nhoi ra o 2 dau theo truc length, lug_thickness mac dinh bang base_height neu khong ghi ro)
-  thread:      {"designation":"M8" (hoac M6, M10...), "diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
-    (chi danh dau lo ren bang ky hieu, KHONG cat ren that trong hinh 3D; diameter la duong kinh lo khoan truoc khi ta-ro)
+  thread:      {"designation":"M8", "diameter":.., "depth":"through"|<so mm>, "positions":[[x,y],...]}
 
 positions/position tinh theo he toa do tam mat phang dat tai tam hinh hoc cua base.
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
-Neu yeu cau cua nguoi dung KHONG the mo ta bang cac part_type va feature_type o tren
+Neu yeu cau KHONG the mo ta bang cac part_type va feature_type o tren
 (vi du: banh rang, bien dang tu do phuc tap, lap ghep nhieu bo phan,
-mat cat bac phuc tap nhieu tang khong doi xung, hop chu thap voi cac ranh xe doc phuc tap,
-bu-long/dai oc co ren xoan 3D thuc chi tiet (chi ho tro mo hinh hoa don gian khong ren that)...),
+bu-long/dai oc co ren xoan 3D thuc chi tiet,
+vit dau chim co ren xoan 3D thuc chi tiet...),
 HOAC khong du thong tin de xac dinh kich thuoc co ban,
-HOAC khong phai la mo ta 1 chi tiet co khi (cau vo nghia, cau hoi khac, chao hoi...),
-thi KHONG duoc co gang ep vao 1 part_type bat ky de tra loi cho co.
-Thay vao do, PHAI tra ve DUY NHAT JSON dang:
+HOAC khong phai la mo ta 1 chi tiet co khi,
+thi PHAI tra ve DUY NHAT JSON dang:
 {"error": "<mo ta ngan gon bang tieng Viet ly do khong xu ly duoc>"}
 """
 
@@ -95,13 +93,10 @@ class LLMClient(ABC):
 
 
 class ClaudeLLMClient(LLMClient):
-    """Client that, goi Anthropic API. Can: pip install anthropic
-    va export ANTHROPIC_API_KEY=sk-...
-    """
+    """Client that, goi Anthropic API."""
 
     def __init__(self, model: str = "claude-sonnet-4-6"):
         import anthropic
-
         self.client = anthropic.Anthropic()
         self.model = model
 
@@ -144,14 +139,10 @@ def _strip_code_fence(text: str) -> str:
 
 
 class DemoLLMClient(LLMClient):
-    """Client gia lap KHONG goi API - dung de chay thu toan bo pipeline khi
-    chua co ANTHROPIC_API_KEY hoac chua co mang. Chi nhan dien duoc cau mau
-    trong examples/plate_4holes_request.txt bang keyword-matching tho so.
-    """
+    """Client gia lap KHONG goi API."""
 
     def nl_to_spec(self, nl_request: str) -> PartSpec:
         from cadai.spec_schema import example_plate_spec
-
         text = nl_request.lower()
         if "tam" in text or "plate" in text:
             return example_plate_spec()
@@ -165,14 +156,11 @@ class DemoLLMClient(LLMClient):
 
 
 def get_default_client() -> LLMClient:
-    """Tra ve ClaudeLLMClient neu co API key + da cai `anthropic`,
-    nguoc lai fallback ve DemoLLMClient de khong chan viec chay thu.
-    """
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return ClaudeLLMClient()
         except ImportError:
-            print("[llm_client] Chua cai `anthropic` (pip install anthropic). Dung DemoLLMClient.")
+            print("[llm_client] Chua cai `anthropic`. Dung DemoLLMClient.")
     else:
-        print("[llm_client] Chua set ANTHROPIC_API_KEY. Dung DemoLLMClient (chi chay duoc cau mau).")
+        print("[llm_client] Chua set ANTHROPIC_API_KEY. Dung DemoLLMClient.")
     return DemoLLMClient()
