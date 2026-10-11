@@ -13,7 +13,7 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling"|"key"|"retaining_ring"|"bushing"|"end_cap",
+  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling"|"key"|"retaining_ring"|"bushing"|"end_cap"|"bevel_gear"|"sprocket"|"spring"|"bearing_housing",
   "base_dimensions": {...tuy part_type, don vi mm...},
   "features": [...],
   "constraints": [],
@@ -35,22 +35,29 @@ Quy tac base_dimensions theo part_type:
   pin:           {"diameter":..,"length":.., "chamfer":.. (tuy chon)}
   flat_plate:    {"length":..,"width":..,"thickness":.., "hole_diameter":.. (tuy chon), "hole_margin":.. (tuy chon)}
   countersunk_screw: {"diameter":..,"length":.., "head_diameter":.. (tuy chon), "head_height":.. (tuy chon)}
-  spur_gear:     {"num_teeth":..,"module":..,"thickness":.., "bore_diameter":.. (tuy chon), "pressure_angle":.. (tuy chon, mac dinh 20)}
-    (banh rang thang; module = duong kinh chia / so rang; num_teeth phai >= 6)
-  pulley:        {"outer_diameter":..,"bore_diameter":..,"width":.., "groove_depth":.. (tuy chon), "groove_angle":.. (tuy chon, mac dinh 38)}
-    (puly/banh dai: hinh tru co ranh chu V; bore_diameter phai nho hon outer_diameter)
+  spur_gear:     {"num_teeth":..,"module":..,"thickness":.., "bore_diameter":.. (tuy chon)}
+    (banh rang thang; module = duong kinh chia / so rang; num_teeth >= 6)
+  pulley:        {"outer_diameter":..,"bore_diameter":..,"width":.., "groove_depth":.. (tuy chon)}
+    (puly/banh dai: hinh tru co ranh chu V; bore_diameter < outer_diameter)
   cam:           {"base_radius":..,"lift":..,"thickness":.., "bore_diameter":.. (tuy chon), "cam_type":.. (tuy chon: "eccentric"|"ellipse")}
-    (cam dia: lech tam hoac ellipse; lift la hanh trinh)
-  coupling:      {"outer_diameter":..,"bore_diameter":..,"total_length":.., "flange_thickness":.. (tuy chon), "bolt_count":.. (tuy chon, mac dinh 4), "bolt_diameter":.. (tuy chon), "pcd":.. (tuy chon)}
-    (khop noi truc: 2 mat bich + loi trum; bore_diameter phai nho hon outer_diameter)
-  key:           {"length":..,"width":..,"height":.., "key_type":.. (tuy chon: "square"|"rounded", mac dinh "square")}
-    (then bang: hinh hop chu nhat, dung lam khoa chong xoay giua truc va bac; key_type rounded la dau ban tron)
+  coupling:      {"outer_diameter":..,"bore_diameter":..,"total_length":.., "bolt_count":.. (tuy chon, mac dinh 4)}
+    (khop noi truc; bore_diameter < outer_diameter)
+  key:           {"length":..,"width":..,"height":.., "key_type":.. (tuy chon: "square"|"rounded")}
+    (then bang; dung khoa chong xoay giua truc va bac)
   retaining_ring: {"outer_diameter":..,"inner_diameter":..,"thickness":.., "gap_angle":.. (tuy chon, mac dinh 30)}
-    (vong ham / circlip: vong C co khe ho; inner_diameter phai nho hon outer_diameter)
-  bushing:       {"outer_diameter":..,"inner_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "has_oil_groove":.. (tuy chon, true/false)}
-    (bac lot truc: hinh tru rong; co the co mat bich va ranh dau; inner_diameter phai nho hon outer_diameter)
-  end_cap:       {"outer_diameter":..,"bore_diameter":..,"thickness":.., "bolt_count":.. (tuy chon, mac dinh 4), "bolt_diameter":.. (tuy chon), "pcd":.. (tuy chon), "has_seal_groove":.. (tuy chon, true/false)}
-    (nap dau truc: mat bich + loi trum + lo truc; bore_diameter phai nho hon outer_diameter)
+    (vong ham / circlip: vong C co khe; inner_diameter < outer_diameter)
+  bushing:       {"outer_diameter":..,"inner_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "has_oil_groove":.. (tuy chon)}
+    (bac lot truc: hinh tru rong; inner_diameter < outer_diameter)
+  end_cap:       {"outer_diameter":..,"bore_diameter":..,"thickness":.., "bolt_count":.. (tuy chon, mac dinh 4), "has_seal_groove":.. (tuy chon)}
+    (nap dau truc; bore_diameter < outer_diameter)
+  bevel_gear:    {"num_teeth":..,"module":..,"thickness":.., "cone_angle":.. (tuy chon, mac dinh 45), "bore_diameter":.. (tuy chon)}
+    (banh rang con: rang nghieng theo mat hinh non; num_teeth >= 6; cone_angle tinh bang do)
+  sprocket:      {"num_teeth":..,"pitch":..,"thickness":.., "bore_diameter":.. (tuy chon), "roller_diameter":.. (tuy chon)}
+    (dia xich: rang tron theo buoc xich; pitch la buoc xich mm, vd 12.7 cho xich 1/2 inch; num_teeth >= 6)
+  spring:        {"coil_diameter":..,"wire_diameter":..,"num_coils":..,"free_length":.., "bore_diameter":.. (tuy chon)}
+    (lo xo xoan: duong kinh vong xoan, duong kinh day, so vong, chieu dai tu do; wire_diameter < coil_diameter/2)
+  bearing_housing: {"outer_diameter":..,"bearing_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "bolt_count":.. (tuy chon, mac dinh 4), "has_snap_ring_groove":.. (tuy chon)}
+    (goi do vong bi: than tru + mat bich; bearing_diameter < outer_diameter)
 
 Quy tac feature params:
   hole, fillet, chamfer, pocket, boss, slot, keyway, bolt_circle, radial_hole, counterbore, side_lugs, thread

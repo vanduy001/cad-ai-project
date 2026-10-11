@@ -12,6 +12,7 @@ SUPPORTED_PART_TYPES = (
     "washer", "pin", "flat_plate", "countersunk_screw",
     "spur_gear", "pulley", "cam", "coupling",
     "key", "retaining_ring", "bushing", "end_cap",
+    "bevel_gear", "sprocket", "spring", "bearing_housing",
 )
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
@@ -112,12 +113,16 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "retaining_ring": ["outer_diameter", "inner_diameter", "thickness"],
         "bushing": ["outer_diameter", "inner_diameter", "length"],
         "end_cap": ["outer_diameter", "bore_diameter", "thickness"],
+        "bevel_gear": ["num_teeth", "module", "thickness"],
+        "sprocket": ["num_teeth", "pitch", "thickness"],
+        "spring": ["coil_diameter", "wire_diameter", "num_coils", "free_length"],
+        "bearing_housing": ["outer_diameter", "bearing_diameter", "length"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
         if dim not in spec.base_dimensions:
             errors.append(f"base_dimensions thieu truong bat buoc '{dim}' cho part_type='{spec.part_type}'")
-        elif spec.part_type not in ("spur_gear",) and (
+        elif spec.part_type not in ("spur_gear", "bevel_gear") and (
             not isinstance(spec.base_dimensions[dim], (int, float)) or spec.base_dimensions[dim] <= 0
         ):
             errors.append(f"base_dimensions['{dim}'] phai la so duong")
@@ -129,6 +134,31 @@ def validate_spec(spec: PartSpec) -> list[str]:
         m = spec.base_dimensions.get("module")
         if not isinstance(m, (int, float)) or m <= 0:
             errors.append("spur_gear: module phai la so duong")
+
+    if spec.part_type == "bevel_gear":
+        nt = spec.base_dimensions.get("num_teeth")
+        if not isinstance(nt, (int, float)) or nt < 6:
+            errors.append("bevel_gear: num_teeth phai >= 6")
+        m = spec.base_dimensions.get("module")
+        if not isinstance(m, (int, float)) or m <= 0:
+            errors.append("bevel_gear: module phai la so duong")
+
+    if spec.part_type == "sprocket":
+        nt = spec.base_dimensions.get("num_teeth")
+        if not isinstance(nt, (int, float)) or nt < 6:
+            errors.append("sprocket: num_teeth phai >= 6")
+
+    if spec.part_type == "spring":
+        cd = spec.base_dimensions.get("coil_diameter")
+        wd = spec.base_dimensions.get("wire_diameter")
+        if isinstance(cd, (int, float)) and isinstance(wd, (int, float)) and wd >= cd / 2:
+            errors.append("spring: wire_diameter phai nho hon ban kinh vong xoan (coil_diameter/2)")
+
+    if spec.part_type == "bearing_housing":
+        od = spec.base_dimensions.get("outer_diameter")
+        bd = spec.base_dimensions.get("bearing_diameter")
+        if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
+            errors.append("bearing_housing: bearing_diameter phai nho hon outer_diameter")
 
     if spec.part_type == "stepped_shaft":
         segments = spec.base_dimensions.get("segments")
