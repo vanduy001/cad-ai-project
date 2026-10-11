@@ -13,6 +13,7 @@ SUPPORTED_PART_TYPES = (
     "plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block",
     "bolt", "nut",
     "washer", "pin", "flat_plate", "countersunk_screw",
+    "spur_gear", "pulley", "cam", "coupling",
 )
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
@@ -105,18 +106,32 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "pin": ["diameter", "length"],
         "flat_plate": ["length", "width", "thickness"],
         "countersunk_screw": ["diameter", "length"],
+        "spur_gear": ["num_teeth", "module", "thickness"],
+        "pulley": ["outer_diameter", "bore_diameter", "width"],
+        "cam": ["base_radius", "lift", "thickness"],
+        "coupling": ["outer_diameter", "bore_diameter", "total_length"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
         if dim not in spec.base_dimensions:
             errors.append(f"base_dimensions thieu truong bat buoc '{dim}' cho part_type='{spec.part_type}'")
-        elif not isinstance(spec.base_dimensions[dim], (int, float)) or spec.base_dimensions[dim] <= 0:
+        elif spec.part_type not in ("spur_gear",) and (
+            not isinstance(spec.base_dimensions[dim], (int, float)) or spec.base_dimensions[dim] <= 0
+        ):
             errors.append(f"base_dimensions['{dim}'] phai la so duong")
+
+    if spec.part_type == "spur_gear":
+        nt = spec.base_dimensions.get("num_teeth")
+        if not isinstance(nt, (int, float)) or nt < 6:
+            errors.append("spur_gear: num_teeth phai >= 6")
+        m = spec.base_dimensions.get("module")
+        if not isinstance(m, (int, float)) or m <= 0:
+            errors.append("spur_gear: module phai la so duong")
 
     if spec.part_type == "stepped_shaft":
         segments = spec.base_dimensions.get("segments")
         if not isinstance(segments, list) or len(segments) == 0:
-            errors.append("base_dimensions['segments'] phai la danh sach khong rong cho part_type='stepped_shaft'")
+            errors.append("base_dimensions['segments'] phai la danh sach khong rong")
         else:
             for i, seg in enumerate(segments):
                 if not isinstance(seg, dict):
@@ -133,16 +148,12 @@ def validate_spec(spec: PartSpec) -> list[str]:
         h = spec.base_dimensions.get("height")
         if isinstance(bh, (int, float)) and isinstance(h, (int, float)) and bh >= h:
             errors.append("pillow_block: base_height phai nho hon height")
-        tw = spec.base_dimensions.get("top_width")
-        length = spec.base_dimensions.get("length")
-        if isinstance(tw, (int, float)) and isinstance(length, (int, float)) and tw >= length:
-            errors.append("pillow_block: top_width phai nho hon length")
 
     if spec.part_type == "nut":
         dia = spec.base_dimensions.get("diameter")
         width = spec.base_dimensions.get("width")
         if isinstance(dia, (int, float)) and isinstance(width, (int, float)) and width <= dia:
-            errors.append("nut: width (be rong luc giac) phai lon hon diameter (duong kinh lo)")
+            errors.append("nut: width phai lon hon diameter")
 
     if spec.part_type == "washer":
         od = spec.base_dimensions.get("outer_diameter")
@@ -155,6 +166,18 @@ def validate_spec(spec: PartSpec) -> list[str]:
         hd = spec.base_dimensions.get("head_diameter")
         if isinstance(dia, (int, float)) and isinstance(hd, (int, float)) and hd <= dia:
             errors.append("countersunk_screw: head_diameter phai lon hon diameter")
+
+    if spec.part_type == "pulley":
+        od = spec.base_dimensions.get("outer_diameter")
+        bd = spec.base_dimensions.get("bore_diameter")
+        if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
+            errors.append("pulley: bore_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "coupling":
+        od = spec.base_dimensions.get("outer_diameter")
+        bd = spec.base_dimensions.get("bore_diameter")
+        if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
+            errors.append("coupling: bore_diameter phai nho hon outer_diameter")
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))
@@ -172,11 +195,7 @@ def example_plate_spec() -> PartSpec:
         features=[
             Feature(
                 type="hole",
-                params={
-                    "diameter": 6,
-                    "depth": "through",
-                    "positions": [[10, 10], [90, 10], [10, 50], [90, 50]],
-                },
+                params={"diameter": 6, "depth": "through", "positions": [[10, 10], [90, 10], [10, 50], [90, 50]]},
             ),
             Feature(type="fillet", params={"radius": 3, "edges": "corners"}),
         ],

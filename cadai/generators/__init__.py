@@ -4,6 +4,7 @@ Gom ham build() cua tung part_type thanh 1 dict BUILDERS.
 """
 from . import plate, bracket, flange, shaft, stepped_shaft, housing, pillow_block, bolt, nut
 from . import washer, pin, flat_plate, countersunk_screw
+from . import spur_gear, pulley, cam, coupling
 
 BUILDERS = {
     "plate": plate.build,
@@ -19,4 +20,8 @@ BUILDERS = {
     "pin": pin.build,
     "flat_plate": flat_plate.build,
     "countersunk_screw": countersunk_screw.build,
+    "spur_gear": spur_gear.build,
+    "pulley": pulley.build,
+    "cam": cam.build,
+    "coupling": coupling.build,
 }
