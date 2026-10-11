@@ -1,7 +1,6 @@
 """
 llm_client.py
 """
-
 from __future__ import annotations
 import os
 import json
@@ -14,7 +13,7 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling",
+  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling"|"key"|"retaining_ring"|"bushing"|"end_cap",
   "base_dimensions": {...tuy part_type, don vi mm...},
   "features": [...],
   "constraints": [],
@@ -37,18 +36,24 @@ Quy tac base_dimensions theo part_type:
   flat_plate:    {"length":..,"width":..,"thickness":.., "hole_diameter":.. (tuy chon), "hole_margin":.. (tuy chon)}
   countersunk_screw: {"diameter":..,"length":.., "head_diameter":.. (tuy chon), "head_height":.. (tuy chon)}
   spur_gear:     {"num_teeth":..,"module":..,"thickness":.., "bore_diameter":.. (tuy chon), "pressure_angle":.. (tuy chon, mac dinh 20)}
-    (banh rang thang; module = duong kinh chia / so rang; vi du banh rang m2 z20: module=2, num_teeth=20;
-     num_teeth phai >= 6; bore_diameter la duong kinh lo truc, mac dinh 20% duong kinh chia)
+    (banh rang thang; module = duong kinh chia / so rang; num_teeth phai >= 6)
   pulley:        {"outer_diameter":..,"bore_diameter":..,"width":.., "groove_depth":.. (tuy chon), "groove_angle":.. (tuy chon, mac dinh 38)}
     (puly/banh dai: hinh tru co ranh chu V; bore_diameter phai nho hon outer_diameter)
-  cam:           {"base_radius":..,"lift":..,"thickness":.., "bore_diameter":.. (tuy chon), "cam_type":.. (tuy chon: "eccentric"|"ellipse", mac dinh "eccentric")}
-    (cam dia: lech tam (eccentric) hoac ellipse; lift la hanh trinh/do lech tam)
+  cam:           {"base_radius":..,"lift":..,"thickness":.., "bore_diameter":.. (tuy chon), "cam_type":.. (tuy chon: "eccentric"|"ellipse")}
+    (cam dia: lech tam hoac ellipse; lift la hanh trinh)
   coupling:      {"outer_diameter":..,"bore_diameter":..,"total_length":.., "flange_thickness":.. (tuy chon), "bolt_count":.. (tuy chon, mac dinh 4), "bolt_diameter":.. (tuy chon), "pcd":.. (tuy chon)}
     (khop noi truc: 2 mat bich + loi trum; bore_diameter phai nho hon outer_diameter)
+  key:           {"length":..,"width":..,"height":.., "key_type":.. (tuy chon: "square"|"rounded", mac dinh "square")}
+    (then bang: hinh hop chu nhat, dung lam khoa chong xoay giua truc va bac; key_type rounded la dau ban tron)
+  retaining_ring: {"outer_diameter":..,"inner_diameter":..,"thickness":.., "gap_angle":.. (tuy chon, mac dinh 30)}
+    (vong ham / circlip: vong C co khe ho; inner_diameter phai nho hon outer_diameter)
+  bushing:       {"outer_diameter":..,"inner_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "has_oil_groove":.. (tuy chon, true/false)}
+    (bac lot truc: hinh tru rong; co the co mat bich va ranh dau; inner_diameter phai nho hon outer_diameter)
+  end_cap:       {"outer_diameter":..,"bore_diameter":..,"thickness":.., "bolt_count":.. (tuy chon, mac dinh 4), "bolt_diameter":.. (tuy chon), "pcd":.. (tuy chon), "has_seal_groove":.. (tuy chon, true/false)}
+    (nap dau truc: mat bich + loi trum + lo truc; bore_diameter phai nho hon outer_diameter)
 
 Quy tac feature params:
   hole, fillet, chamfer, pocket, boss, slot, keyway, bolt_circle, radial_hole, counterbore, side_lugs, thread
-  (giu nguyen nhu cu)
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau KHONG the mo ta bang cac part_type tren, HOAC khong du thong tin,

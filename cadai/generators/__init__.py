@@ -1,10 +1,10 @@
 """
 cadai/generators/__init__.py
-Gom ham build() cua tung part_type thanh 1 dict BUILDERS.
 """
 from . import plate, bracket, flange, shaft, stepped_shaft, housing, pillow_block, bolt, nut
 from . import washer, pin, flat_plate, countersunk_screw
 from . import spur_gear, pulley, cam, coupling
+from . import key, retaining_ring, bushing, end_cap
 
 BUILDERS = {
     "plate": plate.build,
@@ -24,4 +24,8 @@ BUILDERS = {
     "pulley": pulley.build,
     "cam": cam.build,
     "coupling": coupling.build,
+    "key": key.build,
+    "retaining_ring": retaining_ring.build,
+    "bushing": bushing.build,
+    "end_cap": end_cap.build,
 }

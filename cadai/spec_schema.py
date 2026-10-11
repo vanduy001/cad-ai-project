@@ -1,9 +1,6 @@
 """
 spec_schema.py
-================
-Dinh nghia Parametric Spec.
 """
-
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
@@ -14,6 +11,7 @@ SUPPORTED_PART_TYPES = (
     "bolt", "nut",
     "washer", "pin", "flat_plate", "countersunk_screw",
     "spur_gear", "pulley", "cam", "coupling",
+    "key", "retaining_ring", "bushing", "end_cap",
 )
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
@@ -110,6 +108,10 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "pulley": ["outer_diameter", "bore_diameter", "width"],
         "cam": ["base_radius", "lift", "thickness"],
         "coupling": ["outer_diameter", "bore_diameter", "total_length"],
+        "key": ["length", "width", "height"],
+        "retaining_ring": ["outer_diameter", "inner_diameter", "thickness"],
+        "bushing": ["outer_diameter", "inner_diameter", "length"],
+        "end_cap": ["outer_diameter", "bore_diameter", "thickness"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
@@ -178,6 +180,24 @@ def validate_spec(spec: PartSpec) -> list[str]:
         bd = spec.base_dimensions.get("bore_diameter")
         if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
             errors.append("coupling: bore_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "retaining_ring":
+        od = spec.base_dimensions.get("outer_diameter")
+        id_ = spec.base_dimensions.get("inner_diameter")
+        if isinstance(od, (int, float)) and isinstance(id_, (int, float)) and id_ >= od:
+            errors.append("retaining_ring: inner_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "bushing":
+        od = spec.base_dimensions.get("outer_diameter")
+        id_ = spec.base_dimensions.get("inner_diameter")
+        if isinstance(od, (int, float)) and isinstance(id_, (int, float)) and id_ >= od:
+            errors.append("bushing: inner_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "end_cap":
+        od = spec.base_dimensions.get("outer_diameter")
+        bd = spec.base_dimensions.get("bore_diameter")
+        if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
+            errors.append("end_cap: bore_diameter phai nho hon outer_diameter")
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))
