@@ -11,12 +11,6 @@ Ghép toàn bộ pipeline end-to-end:
       -> validator: kiểm tra hình học    [bước 5]
       -> (nếu fail) LLM: repair_spec()  [bước 6, lặp lại bước 2-5 tối đa N lần]
       -> export STEP + báo cáo số liệu
-
-Chạy thử (không cần API key, dùng câu mẫu tấm phẳng):
-    python -m cadai.pipeline --demo
-
-Chạy với yêu cầu tự do (cần API key của LLM tương ứng):
-    python -m cadai.pipeline --request "Thiết kế mặt bích ..."
 """
 
 from __future__ import annotations
@@ -33,9 +27,6 @@ from cadai.llm_client import get_default_client, LLMClient
 
 @dataclass
 class PipelineRunLog:
-    """Log đầy đủ 1 lần chạy pipeline: số vòng lặp, thành công hay không,
-    lỗi cuối cùng, số liệu kích thước, lịch sử từng vòng.
-    """
     nl_request: str
     success: bool = False
     n_iterations: int = 0
@@ -44,14 +35,14 @@ class PipelineRunLog:
     final_metrics: dict = field(default_factory=dict)
     step_path: str | None = None
     elapsed_sec: float = 0.0
-    history: list[dict] = field(default_factory=list)  # 1 entry / vòng lặp
+    history: list[dict] = field(default_factory=list)
 
 
 def run_pipeline(
     nl_request: str,
     client: LLMClient,
     output_step_path: str = "output.step",
-    max_iterations: int = 4,
+    max_iterations: int = 5,
 ) -> PipelineRunLog:
     t0 = time.time()
     log = PipelineRunLog(nl_request=nl_request)
@@ -93,8 +84,19 @@ def run_pipeline(
                 spec = _try_repair(client, nl_request, spec, [str(e)])
             continue
 
-        # --- Bước 4: chạy code + export STEP luôn ---
+        # --- Bước 4: chạy code + export STEP ---
         exec_result = export_step(code, output_step_path)
+
+        # Nếu bước 4 lỗi (OCCT crash, syntax error...) -> repair ngay
+        if exec_result.error:
+            exec_errors = [f"Lỗi dựng hình CadQuery: {exec_result.error}"]
+            iter_log["stage"] = "cq_execution"
+            iter_log["errors"] = exec_errors
+            log.history.append(iter_log)
+            log.final_errors = exec_errors
+            if not is_last:
+                spec = _try_repair(client, nl_request, spec, exec_errors)
+            continue
 
         # --- Bước 5: validate hình học ---
         report: ValidationReport = validate_design(spec, exec_result)
@@ -120,12 +122,15 @@ def run_pipeline(
     return log
 
 
-def _try_repair(client: LLMClient, nl_request: str, spec: PartSpec, errors: list[str]) -> PartSpec:
+def _try_repair(
+    client: LLMClient,
+    nl_request: str,
+    spec: PartSpec,
+    errors: list[str],
+) -> PartSpec:
     try:
         return client.repair_spec(nl_request, spec, errors)
     except Exception:
-        # Nếu repair lỗi, trả nguyên spec cũ để vòng lặp dừng theo
-        # max_iterations thay vì crash toàn bộ pipeline.
         return spec
 
 
@@ -148,10 +153,10 @@ def print_report(log: PipelineRunLog) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CAD-AI Pipeline: NL request -> STEP")
-    parser.add_argument("--request", type=str, default=None, help="Yêu cầu thiết kế bằng ngôn ngữ tự nhiên")
-    parser.add_argument("--demo", action="store_true", help="Chạy với câu yêu cầu mẫu")
+    parser.add_argument("--request", type=str, default=None)
+    parser.add_argument("--demo", action="store_true")
     parser.add_argument("--output", type=str, default="output.step")
-    parser.add_argument("--max-iter", type=int, default=4)
+    parser.add_argument("--max-iter", type=int, default=5)
     args = parser.parse_args()
 
     if args.demo or not args.request:
