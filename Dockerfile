@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
+# cache bust: phase5
 COPY . /app
 
 RUN conda config --add channels conda-forge && \
@@ -28,4 +29,3 @@ RUN pip install --no-cache-dir fastapi uvicorn google-genai
 EXPOSE 8000
 
 CMD ["python", "run_server.py"]
-# cache bust: phase5
