@@ -141,6 +141,7 @@ def generate(request: Request, body: GenerateRequest):
             "success": True,
             "message": "Da tao mo hinh 3D thanh cong.",
             "download_url": f"/download/{file_id}",
+            "download_dxf_url": f"/download_dxf/{file_id}",
             "metrics": log.final_metrics,
             "pipeline": info,
         }
@@ -167,3 +168,23 @@ def download(file_id: str):
     if not path.exists():
         return {"error": "File khong ton tai"}
     return FileResponse(path, filename=f"{file_id}.step", media_type="application/step")
+
+
+@app.get("/download_dxf/{file_id}")
+def download_dxf(file_id: str):
+    """Xuat ban ve 2D (DXF, 3 hinh chieu + kich thuoc bao ngoai) tu file STEP da tao."""
+    if not re.fullmatch(r"[0-9a-f]{8}", file_id):
+        return {"error": "File khong hop le"}
+    step_path = OUTPUT_DIR / f"{file_id}.step"
+    if not step_path.exists():
+        return {"error": "File khong ton tai"}
+    dxf_path = OUTPUT_DIR / f"{file_id}.dxf"
+    if not dxf_path.exists():
+        try:
+            import cadquery as cq
+            from cadai.drawing_2d import export_dxf
+            shape = cq.importers.importStep(str(step_path))
+            export_dxf(shape, str(dxf_path))
+        except Exception as e:
+            return {"error": f"Khong xuat duoc ban ve 2D: {type(e).__name__}: {e}"}
+    return FileResponse(dxf_path, filename=f"{file_id}.dxf", media_type="application/dxf")

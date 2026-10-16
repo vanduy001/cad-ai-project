@@ -420,7 +420,8 @@ async function generate() {
       setBadge('done', 'Hoàn tất');
       const nums = data.metrics ? Object.values(data.metrics).filter(v => typeof v === 'number') : [];
       document.getElementById('v-err').textContent = (nums.length ? Math.max(...nums) : 0).toFixed(3) + ' mm';
-      resultArea.innerHTML = '<a class="download-btn" href="' + esc(data.download_url) + '">Tải file STEP</a>';
+      resultArea.innerHTML = '<a class="download-btn" href="' + esc(data.download_url) + '">Tải file STEP</a>' +
+        (data.download_dxf_url ? '<a class="download-btn" href="' + esc(data.download_dxf_url) + '">Tải bản vẽ 2D (DXF)</a>' : '');
     } else {
       setStep(1);
       setPreview('error');

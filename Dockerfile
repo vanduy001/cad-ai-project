@@ -24,7 +24,7 @@ RUN conda config --add channels conda-forge && \
     conda install -y python=3.10 cadquery=2.4 && \
     conda clean -afy
 
-RUN pip install --no-cache-dir fastapi uvicorn google-genai
+RUN pip install --no-cache-dir fastapi uvicorn google-genai ezdxf
 
 EXPOSE 8000
 
