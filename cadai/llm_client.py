@@ -13,12 +13,14 @@ Chi tra ve DUY NHAT mot JSON object hop le, khong them loi giai thich, khong dun
 
 Schema JSON bat buoc:
 {
-  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling"|"key"|"retaining_ring"|"bushing"|"end_cap"|"bevel_gear"|"sprocket"|"spring"|"bearing_housing",
+  "part_type": "plate"|"bracket"|"flange"|"shaft"|"housing"|"stepped_shaft"|"pillow_block"|"bolt"|"nut"|"washer"|"pin"|"flat_plate"|"countersunk_screw"|"spur_gear"|"pulley"|"cam"|"coupling"|"key"|"retaining_ring"|"bushing"|"end_cap"|"bevel_gear"|"sprocket"|"spring"|"bearing_housing"|"rack"|"worm"|"piston"|"connecting_rod",
   "base_dimensions": {...tuy part_type, don vi mm...},
   "features": [...],
   "constraints": [],
   "material": "ten vat lieu hoac null",
-  "tolerance": 0.1
+  "tolerance": 0.1,
+  "tolerances": {...TUY CHON, dung sai kich thuoc, xem quy tac ben duoi...},
+  "surface_finish": {...TUY CHON, do nham be mat Ra, xem quy tac ben duoi...}
 }
 
 Quy tac base_dimensions theo part_type:
@@ -33,34 +35,60 @@ Quy tac base_dimensions theo part_type:
   nut:           {"diameter":..,"height":.., "width":.. (tuy chon)}
   washer:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   pin:           {"diameter":..,"length":.., "chamfer":.. (tuy chon)}
-  flat_plate:    {"length":..,"width":..,"thickness":.., "hole_diameter":.. (tuy chon), "hole_margin":.. (tuy chon)}
-  countersunk_screw: {"diameter":..,"length":.., "head_diameter":.. (tuy chon), "head_height":.. (tuy chon)}
+  flat_plate:    {"length":..,"width":..,"thickness":.., "hole_diameter":.. (tuy chon)}
+  countersunk_screw: {"diameter":..,"length":.., "head_diameter":.. (tuy chon)}
   spur_gear:     {"num_teeth":..,"module":..,"thickness":.., "bore_diameter":.. (tuy chon)}
-    (banh rang thang; module = duong kinh chia / so rang; num_teeth >= 6)
-  pulley:        {"outer_diameter":..,"bore_diameter":..,"width":.., "groove_depth":.. (tuy chon)}
-    (puly/banh dai: hinh tru co ranh chu V; bore_diameter < outer_diameter)
-  cam:           {"base_radius":..,"lift":..,"thickness":.., "bore_diameter":.. (tuy chon), "cam_type":.. (tuy chon: "eccentric"|"ellipse")}
-  coupling:      {"outer_diameter":..,"bore_diameter":..,"total_length":.., "bolt_count":.. (tuy chon, mac dinh 4)}
-    (khop noi truc; bore_diameter < outer_diameter)
+    (banh rang thang; num_teeth >= 6)
+  pulley:        {"outer_diameter":..,"bore_diameter":..,"width":..}
+    (puly/banh dai; bore_diameter < outer_diameter)
+  cam:           {"base_radius":..,"lift":..,"thickness":.., "cam_type":.. (tuy chon: "eccentric"|"ellipse")}
+  coupling:      {"outer_diameter":..,"bore_diameter":..,"total_length":.., "bolt_count":.. (tuy chon)}
   key:           {"length":..,"width":..,"height":.., "key_type":.. (tuy chon: "square"|"rounded")}
-    (then bang; dung khoa chong xoay giua truc va bac)
-  retaining_ring: {"outer_diameter":..,"inner_diameter":..,"thickness":.., "gap_angle":.. (tuy chon, mac dinh 30)}
-    (vong ham / circlip: vong C co khe; inner_diameter < outer_diameter)
-  bushing:       {"outer_diameter":..,"inner_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "has_oil_groove":.. (tuy chon)}
-    (bac lot truc: hinh tru rong; inner_diameter < outer_diameter)
-  end_cap:       {"outer_diameter":..,"bore_diameter":..,"thickness":.., "bolt_count":.. (tuy chon, mac dinh 4), "has_seal_groove":.. (tuy chon)}
-    (nap dau truc; bore_diameter < outer_diameter)
-  bevel_gear:    {"num_teeth":..,"module":..,"thickness":.., "cone_angle":.. (tuy chon, mac dinh 45), "bore_diameter":.. (tuy chon)}
-    (banh rang con: rang nghieng theo mat hinh non; num_teeth >= 6; cone_angle tinh bang do)
-  sprocket:      {"num_teeth":..,"pitch":..,"thickness":.., "bore_diameter":.. (tuy chon), "roller_diameter":.. (tuy chon)}
-    (dia xich: rang tron theo buoc xich; pitch la buoc xich mm, vd 12.7 cho xich 1/2 inch; num_teeth >= 6)
-  spring:        {"coil_diameter":..,"wire_diameter":..,"num_coils":..,"free_length":.., "bore_diameter":.. (tuy chon)}
-    (lo xo xoan: duong kinh vong xoan, duong kinh day, so vong, chieu dai tu do; wire_diameter < coil_diameter/2)
-  bearing_housing: {"outer_diameter":..,"bearing_diameter":..,"length":.., "flange_diameter":.. (tuy chon), "bolt_count":.. (tuy chon, mac dinh 4), "has_snap_ring_groove":.. (tuy chon)}
-    (goi do vong bi: than tru + mat bich; bearing_diameter < outer_diameter)
+  retaining_ring: {"outer_diameter":..,"inner_diameter":..,"thickness":.., "gap_angle":.. (tuy chon)}
+  bushing:       {"outer_diameter":..,"inner_diameter":..,"length":.., "has_oil_groove":.. (tuy chon)}
+  end_cap:       {"outer_diameter":..,"bore_diameter":..,"thickness":.., "bolt_count":.. (tuy chon)}
+  bevel_gear:    {"num_teeth":..,"module":..,"thickness":.., "cone_angle":.. (tuy chon, mac dinh 45)}
+    (banh rang con; num_teeth >= 6)
+  sprocket:      {"num_teeth":..,"pitch":..,"thickness":.., "bore_diameter":.. (tuy chon)}
+    (dia xich; pitch la buoc xich mm, vd 12.7; num_teeth >= 6)
+  spring:        {"coil_diameter":..,"wire_diameter":..,"num_coils":..,"free_length":..}
+    (lo xo xoan; wire_diameter < coil_diameter/2)
+  bearing_housing: {"outer_diameter":..,"bearing_diameter":..,"length":.., "bolt_count":.. (tuy chon)}
+    (goi do vong bi; bearing_diameter < outer_diameter)
+  rack:          {"module":..,"num_teeth":..,"thickness":.., "height":.. (tuy chon), "width":.. (tuy chon)}
+    (thanh rang thang: an khop voi spur_gear cung module; num_teeth >= 2)
+  worm:          {"diameter":..,"length":.., "module":.. (tuy chon), "num_threads":.. (tuy chon, mac dinh 1), "bore_diameter":.. (tuy chon)}
+    (truc vit: hinh tru co rang xoan; num_threads la so dau moi 1/2/4)
+  piston:        {"diameter":..,"length":.., "pin_diameter":.. (tuy chon), "num_rings":.. (tuy chon, mac dinh 2), "wall_thickness":.. (tuy chon)}
+    (piston xi-lanh: than tru co ranh xec-mang va lo chot piston)
+  connecting_rod: {"length":..,"big_end_diameter":..,"small_end_diameter":..,"thickness":.., "big_bore":.. (tuy chon), "small_bore":.. (tuy chon)}
+    (thanh truyen: noi piston voi truc khuyu; big_end_diameter > small_end_diameter; length > big_end_diameter)
 
 Quy tac feature params:
   hole, fillet, chamfer, pocket, boss, slot, keyway, bolt_circle, radial_hole, counterbore, side_lugs, thread
+
+Quy tac tolerances (DUNG SAI kich thuoc, TUY CHON):
+  Chi them khi nguoi dung NOI RO dung sai. KHONG tu bia ra dung sai. Neu khong co thi bo khoa nay hoac de {}.
+  Khoa la TEN KICH THUOC co trong base_dimensions (vd "diameter", "length", "inner_diameter", "thickness").
+  Rieng stepped_shaft dung khoa "segments[0].diameter", "segments[1].length" (chi so doan bat dau tu 0).
+  Gia tri la CHUOI, mot trong 3 dang:
+    - cap ISO: "H7", "H8" (lo, chu HOA); "g6", "h6", "k6", "f7" (truc, chu thuong); so la cap chinh xac tu 1 den 18
+    - doi xung: "±0.1"
+    - khong doi xung: "+0.02/-0.01" (sai lech tren / sai lech duoi, sai lech tren phai >= sai lech duoi)
+  Vi du: "truc D20 g6, dai 100 +-0.1" -> "tolerances": {"diameter": "g6", "length": "±0.1"}
+  Vi du: "vong dem lo phi10 H7" -> "tolerances": {"inner_diameter": "H7"}
+  Vi du: "truc bac, doan dau phi20 k6" -> "tolerances": {"segments[0].diameter": "k6"}
+  Dung sai KHONG lam doi hinh 3D: kich thuoc trong base_dimensions van la kich thuoc danh nghia.
+  LUU Y: truong "tolerance" (mot so, mac dinh 0.1) la sai so kiem tra dung hinh, KHONG lien quan den "tolerances".
+
+Quy tac surface_finish (DO NHAM be mat Ra, TUY CHON):
+  Chi them khi nguoi dung NOI RO do nham. KHONG tu bia. Neu khong co thi bo khoa nay hoac de {}.
+  Gia tri la SO Ra tinh bang micromet (um), lon hon 0 va khong qua 100.
+  Khoa la ten be mat: "default" (ap dung cho cac be mat con lai), "outer" (mat tru ngoai/mat ngoai),
+  "bore" (lo/mat trong), "end_face" (mat dau), "side" (mat ben).
+  Vi du: "nham Ra 1.6 cho lo, cac mat khac Ra 3.2" -> "surface_finish": {"bore": 1.6, "default": 3.2}
+  Vi du: "do nham Ra 0.8" (khong noi be mat nao) -> "surface_finish": {"default": 0.8}
+  Cap Ra thuong dung: 0.2, 0.4, 0.8, 1.6, 3.2, 6.3, 12.5, 25
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau KHONG the mo ta bang cac part_type tren, HOAC khong du thong tin,

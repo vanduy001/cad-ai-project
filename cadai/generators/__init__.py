@@ -6,6 +6,7 @@ from . import washer, pin, flat_plate, countersunk_screw
 from . import spur_gear, pulley, cam, coupling
 from . import key, retaining_ring, bushing, end_cap
 from . import bevel_gear, sprocket, spring, bearing_housing
+from . import rack, worm, piston, connecting_rod
 
 BUILDERS = {
     "plate": plate.build,
@@ -33,4 +34,8 @@ BUILDERS = {
     "sprocket": sprocket.build,
     "spring": spring.build,
     "bearing_housing": bearing_housing.build,
+    "rack": rack.build,
+    "worm": worm.build,
+    "piston": piston.build,
+    "connecting_rod": connecting_rod.build,
 }

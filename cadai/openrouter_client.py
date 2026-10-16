@@ -1,8 +1,7 @@
 """
 openrouter_client.py
 ======================
-Client goi OpenRouter API (OpenAI-compatible qua HTTP, dung `requests`),
-thay the cho GroqLLMClient (Groq bi chan truy cap theo vung mang).
+Client goi OpenRouter API (OpenAI-compatible qua HTTP, dung `requests`).
 Interface giu nguyen nhu llm_client.LLMClient de pipeline.py dung duoc
 khong can sua gi them.
 
@@ -12,9 +11,7 @@ Bien moi truong:
   OPENROUTER_MODEL     tuy chon, doi model chinh khong can sua code
   OPENROUTER_FALLBACK  tuy chon, danh sach model du phong cach nhau boi dau phay
 
-Lay API key mien phi tai: https://openrouter.ai/keys (dang nhap bang Google,
-khong can the tin dung). Cac model co duoi ":free" khong mat phi nhung co
-gioi han so request/phut va /ngay.
+Lay API key mien phi tai: https://openrouter.ai/keys
 """
 
 from __future__ import annotations
@@ -28,10 +25,12 @@ from cadai.llm_client import LLMClient, SYSTEM_PROMPT, _strip_code_fence
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+DEFAULT_MODEL = "google/gemma-4-31b-it:free"
 DEFAULT_FALLBACKS = [
-    "google/gemma-4-31b-it:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "cohere/north-mini-code:free",
     "openrouter/free",
 ]
 RETRIES_PER_MODEL = 2
@@ -46,12 +45,12 @@ class AllModelsOverloadedError(RuntimeError):
 
 class OpenRouterLLMClient(LLMClient):
     def __init__(self, model: str | None = None):
-        api_key = os.environ.get("OPENROUTER_API_KEY")
+        api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
         if not api_key:
             raise RuntimeError("Chua set bien moi truong OPENROUTER_API_KEY")
         self.api_key = api_key
 
-        primary = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)
+        primary = (model or os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)).strip()
         fallback_env = os.environ.get("OPENROUTER_FALLBACK")
         fallbacks = [m.strip() for m in fallback_env.split(",")] if fallback_env else DEFAULT_FALLBACKS
         self.models = [primary] + [m for m in fallbacks if m != primary]

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Any
 import json
+import re
 
 SUPPORTED_PART_TYPES = (
     "plate", "bracket", "flange", "shaft", "housing", "stepped_shaft", "pillow_block",
@@ -13,11 +14,21 @@ SUPPORTED_PART_TYPES = (
     "spur_gear", "pulley", "cam", "coupling",
     "key", "retaining_ring", "bushing", "end_cap",
     "bevel_gear", "sprocket", "spring", "bearing_housing",
+    "rack", "worm", "piston", "connecting_rod",
 )
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
 )
+
+# ---- Dung sai (tolerances) va do nham (surface_finish) ----
+# Cap dung sai ISO: chu hoa = lo (H7, K7), chu thuong = truc (g6, h6, k6); so = cap chinh xac IT1..IT18
+_ISO_FIT_RE = re.compile(r"^([A-Za-z]{1,2})(\d{1,2})$")
+_SYMMETRIC_RE = re.compile(r"^(?:±|\+/-|\+-)\s*(\d+(?:\.\d+)?)$")
+_ASYMMETRIC_RE = re.compile(r"^([+-]\s*\d+(?:\.\d+)?)\s*/\s*([+-]\s*\d+(?:\.\d+)?)$")
+_STEPPED_KEY_RE = re.compile(r"^segments\[(\d+)\]\.(diameter|length)$")
+# Do nham Ra thuong dung (um): 0.4, 0.8, 1.6, 3.2, 6.3, 12.5, 25 ... (chi canh bao khoang hop le, khong ep dung day so)
+MAX_RA = 100.0
 
 
 class SpecValidationError(ValueError):
@@ -56,6 +67,10 @@ class PartSpec:
     material: Optional[str] = None
     tolerance: float = 0.1
     units: str = "mm"
+    # Dung sai theo tung kich thuoc: {"diameter": "g6", "length": "±0.1", "width": "+0.02/-0.01"}
+    tolerances: dict[str, str] = field(default_factory=dict)
+    # Do nham be mat Ra (um): {"default": 3.2, "bore": 1.6, "outer": 0.8}
+    surface_finish: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -75,11 +90,86 @@ class PartSpec:
             material=d.get("material"),
             tolerance=d.get("tolerance", 0.1),
             units=d.get("units", "mm"),
+            tolerances=d.get("tolerances") or {},
+            surface_finish=d.get("surface_finish") or {},
         )
 
     @staticmethod
     def from_json(s: str) -> "PartSpec":
         return PartSpec.from_dict(json.loads(s))
+
+
+def _check_tolerance_value(key: str, val: Any) -> list[str]:
+    """Kiem tra 1 gia tri dung sai: cap ISO (H7, g6), doi xung (±0.1) hoac khong doi xung (+0.02/-0.01)."""
+    if not isinstance(val, str) or not val.strip():
+        return [f"tolerances['{key}'] phai la chuoi khong rong (vi du 'H7', '±0.1', '+0.02/-0.01')"]
+    s = val.strip()
+
+    m = _SYMMETRIC_RE.match(s)
+    if m:
+        if float(m.group(1)) <= 0:
+            return [f"tolerances['{key}']='{val}': gia tri sai lech phai > 0"]
+        return []
+
+    m = _ASYMMETRIC_RE.match(s)
+    if m:
+        upper = float(m.group(1).replace(" ", ""))
+        lower = float(m.group(2).replace(" ", ""))
+        if upper < lower:
+            return [f"tolerances['{key}']='{val}': sai lech tren phai >= sai lech duoi"]
+        return []
+
+    m = _ISO_FIT_RE.match(s)
+    if m:
+        letters, grade = m.group(1), int(m.group(2))
+        if not (1 <= grade <= 18):
+            return [f"tolerances['{key}']='{val}': cap chinh xac IT phai tu 1 den 18"]
+        # 1 hoac 2 chu cai cung kieu (cung hoa hoac cung thuong), tru JS/js, CD/cd, EF/ef, FG/fg
+        if not (letters.isupper() or letters.islower()):
+            return [f"tolerances['{key}']='{val}': chu cai phai viet hoa het (lo) hoac viet thuong het (truc)"]
+        return []
+
+    return [
+        f"tolerances['{key}']='{val}' khong hop le "
+        f"(chap nhan: cap ISO nhu 'H7', 'g6'; doi xung '±0.1'; khong doi xung '+0.02/-0.01')"
+    ]
+
+
+def _validate_tolerances_and_finish(spec: PartSpec) -> list[str]:
+    errs: list[str] = []
+
+    # ---- dung sai ----
+    if not isinstance(spec.tolerances, dict):
+        errs.append("tolerances phai la object (ten kich thuoc -> gia tri dung sai)")
+    else:
+        for key, val in spec.tolerances.items():
+            sm = _STEPPED_KEY_RE.match(key)
+            if sm:
+                if spec.part_type != "stepped_shaft":
+                    errs.append(f"tolerances['{key}'] chi dung cho stepped_shaft")
+                else:
+                    segs = spec.base_dimensions.get("segments")
+                    idx = int(sm.group(1))
+                    if not isinstance(segs, list) or idx >= len(segs):
+                        errs.append(f"tolerances['{key}']: khong co segments[{idx}]")
+            elif key not in spec.base_dimensions:
+                errs.append(
+                    f"tolerances['{key}']: khong co kich thuoc nay trong base_dimensions "
+                    f"({list(spec.base_dimensions.keys())})"
+                )
+            errs.extend(_check_tolerance_value(key, val))
+
+    # ---- do nham ----
+    if not isinstance(spec.surface_finish, dict):
+        errs.append("surface_finish phai la object (ten be mat -> Ra tinh bang um)")
+    else:
+        for name, ra in spec.surface_finish.items():
+            if not isinstance(name, str) or not name.strip():
+                errs.append("surface_finish: ten be mat phai la chuoi khong rong")
+            if isinstance(ra, bool) or not isinstance(ra, (int, float)) or ra <= 0 or ra > MAX_RA:
+                errs.append(f"surface_finish['{name}']={ra!r} phai la so Ra > 0 va <= {MAX_RA:g} (um)")
+
+    return errs
 
 
 def validate_spec(spec: PartSpec) -> list[str]:
@@ -117,6 +207,10 @@ def validate_spec(spec: PartSpec) -> list[str]:
         "sprocket": ["num_teeth", "pitch", "thickness"],
         "spring": ["coil_diameter", "wire_diameter", "num_coils", "free_length"],
         "bearing_housing": ["outer_diameter", "bearing_diameter", "length"],
+        "rack": ["module", "num_teeth", "thickness"],
+        "worm": ["diameter", "length"],
+        "piston": ["diameter", "length"],
+        "connecting_rod": ["length", "big_end_diameter", "small_end_diameter", "thickness"],
     }
     needed = required_dims.get(spec.part_type, [])
     for dim in needed:
@@ -143,6 +237,14 @@ def validate_spec(spec: PartSpec) -> list[str]:
         if not isinstance(m, (int, float)) or m <= 0:
             errors.append("bevel_gear: module phai la so duong")
 
+    if spec.part_type == "rack":
+        nt = spec.base_dimensions.get("num_teeth")
+        if not isinstance(nt, (int, float)) or nt < 2:
+            errors.append("rack: num_teeth phai >= 2")
+        m = spec.base_dimensions.get("module")
+        if not isinstance(m, (int, float)) or m <= 0:
+            errors.append("rack: module phai la so duong")
+
     if spec.part_type == "sprocket":
         nt = spec.base_dimensions.get("num_teeth")
         if not isinstance(nt, (int, float)) or nt < 6:
@@ -159,6 +261,15 @@ def validate_spec(spec: PartSpec) -> list[str]:
         bd = spec.base_dimensions.get("bearing_diameter")
         if isinstance(od, (int, float)) and isinstance(bd, (int, float)) and bd >= od:
             errors.append("bearing_housing: bearing_diameter phai nho hon outer_diameter")
+
+    if spec.part_type == "connecting_rod":
+        bed = spec.base_dimensions.get("big_end_diameter")
+        sed = spec.base_dimensions.get("small_end_diameter")
+        ln = spec.base_dimensions.get("length")
+        if isinstance(bed, (int, float)) and isinstance(ln, (int, float)) and bed >= ln:
+            errors.append("connecting_rod: big_end_diameter phai nho hon length")
+        if isinstance(sed, (int, float)) and isinstance(bed, (int, float)) and sed >= bed:
+            errors.append("connecting_rod: small_end_diameter phai nho hon big_end_diameter")
 
     if spec.part_type == "stepped_shaft":
         segments = spec.base_dimensions.get("segments")
@@ -231,6 +342,8 @@ def validate_spec(spec: PartSpec) -> list[str]:
 
     for i, feat in enumerate(spec.features):
         errors.extend(feat.validate(i))
+
+    errors.extend(_validate_tolerances_and_finish(spec))
 
     if spec.tolerance <= 0:
         errors.append("tolerance phai > 0")
