@@ -5,6 +5,7 @@ Backend FastAPI cho website AI CAD.
 Chay: python run_server.py   (hoac: uvicorn web.app:app --reload)
 """
 
+import json
 import re
 import sys
 import uuid
@@ -30,6 +31,9 @@ WINDOW_SECONDS = 3600  # 1 gio
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent / "generated"
 OUTPUT_DIR.mkdir(exist_ok=True)
 INDEX_HTML = pathlib.Path(__file__).resolve().parent / "index.html"
+
+# Loai chi tiet can bang thong so tren ban ve (khong suy ra het tu hinh dang)
+_PARAM_TYPES = {"spur_gear", "bevel_gear", "sprocket", "rack", "worm", "spring", "cam", "pulley"}
 
 OVERLOAD_MESSAGE = (
     "He thong AI dang bi gioi han rate limit (dang dung key OpenRouter mien phi). "
@@ -137,6 +141,18 @@ def generate(request: Request, body: GenerateRequest):
     info = _build_pipeline_info(log)
 
     if log.success:
+        try:  # luu thong tin spec de ban ve 2D ghi vat lieu, dung sai, do nham...
+            spec = log.final_spec or {}
+            (OUTPUT_DIR / f"{file_id}.json").write_text(json.dumps({
+                "part_type": spec.get("part_type"),
+                "material": spec.get("material"),
+                "tolerance": spec.get("tolerance"),
+                "tolerances": spec.get("tolerances") or {},
+                "surface_finish": spec.get("surface_finish") or {},
+                "base_dimensions": spec.get("base_dimensions") or {},
+            }), encoding="utf-8")
+        except Exception:
+            pass
         return {
             "success": True,
             "message": "Da tao mo hinh 3D thanh cong.",
@@ -182,9 +198,20 @@ def download_dxf(file_id: str):
     if not dxf_path.exists():
         try:
             import cadquery as cq
-            from cadai.drawing_2d import export_dxf
+            from cadai.drawing_2d import export_drawing
             shape = cq.importers.importStep(str(step_path))
-            export_dxf(shape, str(dxf_path))
+            meta = {}
+            meta_path = OUTPUT_DIR / f"{file_id}.json"
+            if meta_path.exists():
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            pt = meta.get("part_type")
+            export_drawing(
+                shape, str(dxf_path), part_type=pt, material=meta.get("material"),
+                tolerance=meta.get("tolerance"),
+                tolerances=meta.get("tolerances") or None,
+                surface_finish=meta.get("surface_finish") or None,
+                params=(meta.get("base_dimensions") if pt in _PARAM_TYPES else None),
+            )
         except Exception as e:
             return {"error": f"Khong xuat duoc ban ve 2D: {type(e).__name__}: {e}"}
     return FileResponse(dxf_path, filename=f"{file_id}.dxf", media_type="application/dxf")
