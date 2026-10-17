@@ -76,6 +76,234 @@ def _ascii(s):
     return "".join(c for c in s if not unicodedata.combining(c))
 
 
+# ----------------------------------------------------------------------------
+# Che do tuong thich: chu, kich thuoc, net dut ve bang hinh hoc co ban
+# (LINE / LWPOLYLINE / SOLID) de MOI trinh xem DXF deu hien thi duoc, ke ca cac
+# trinh xem don gian khong ve TEXT, DIMENSION va kieu net.
+# ----------------------------------------------------------------------------
+# Phong chu net don, luoi 4 x 6 (rong x cao chu hoa), goc duoi-trai la (0, 0)
+_GLYPHS = {
+    "0": [[(0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "1": [[(1, 5), (2, 6), (2, 0)], [(1, 0), (3, 0)]],
+    "2": [[(0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (0, 0), (4, 0)]],
+    "3": [[(0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3), (1, 3)],
+          [(3, 3), (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "4": [[(3, 0), (3, 6), (0, 2), (4, 2)]],
+    "5": [[(4, 6), (0, 6), (0, 3), (3, 3), (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "6": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0), (3, 0), (4, 1), (4, 2), (3, 3), (0, 3)]],
+    "7": [[(0, 6), (4, 6), (1, 0)]],
+    "8": [[(1, 3), (0, 4), (0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3), (1, 3),
+           (0, 2), (0, 1), (1, 0), (3, 0), (4, 1), (4, 2), (3, 3)]],
+    "9": [[(0, 1), (1, 0), (3, 0), (4, 1), (4, 5), (3, 6), (1, 6), (0, 5), (0, 4), (1, 3), (4, 3)]],
+    "A": [[(0, 0), (2, 6), (4, 0)], [(1, 2), (3, 2)]],
+    "B": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 4), (3, 3), (0, 3)],
+          [(3, 3), (4, 2), (4, 1), (3, 0), (0, 0)]],
+    "C": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0), (3, 0), (4, 1)]],
+    "D": [[(0, 0), (0, 6), (2, 6), (4, 4), (4, 2), (2, 0), (0, 0)]],
+    "E": [[(4, 6), (0, 6), (0, 0), (4, 0)], [(0, 3), (3, 3)]],
+    "F": [[(4, 6), (0, 6), (0, 0)], [(0, 3), (3, 3)]],
+    "G": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0), (3, 0), (4, 1), (4, 3), (2, 3)]],
+    "H": [[(0, 0), (0, 6)], [(4, 0), (4, 6)], [(0, 3), (4, 3)]],
+    "I": [[(1, 6), (3, 6)], [(2, 6), (2, 0)], [(1, 0), (3, 0)]],
+    "J": [[(4, 6), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "K": [[(0, 0), (0, 6)], [(4, 6), (0, 3), (4, 0)]],
+    "L": [[(0, 6), (0, 0), (4, 0)]],
+    "M": [[(0, 0), (0, 6), (2, 3), (4, 6), (4, 0)]],
+    "N": [[(0, 0), (0, 6), (4, 0), (4, 6)]],
+    "O": [[(1, 0), (0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0)]],
+    "P": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 4), (3, 3), (0, 3)]],
+    "Q": [[(1, 0), (0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0)], [(2, 2), (4, 0)]],
+    "R": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 4), (3, 3), (0, 3)], [(2, 3), (4, 0)]],
+    "S": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 4), (1, 3), (3, 3), (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "T": [[(0, 6), (4, 6)], [(2, 6), (2, 0)]],
+    "U": [[(0, 6), (0, 1), (1, 0), (3, 0), (4, 1), (4, 6)]],
+    "V": [[(0, 6), (2, 0), (4, 6)]],
+    "W": [[(0, 6), (1, 0), (2, 3), (3, 0), (4, 6)]],
+    "X": [[(0, 6), (4, 0)], [(0, 0), (4, 6)]],
+    "Y": [[(0, 6), (2, 3), (4, 6)], [(2, 3), (2, 0)]],
+    "Z": [[(0, 6), (4, 6), (0, 0), (4, 0)]],
+    ".": [[(1.5, 0), (2.5, 0), (2.5, 0.8), (1.5, 0.8), (1.5, 0)]],
+    ",": [[(2, 0.8), (2, 0), (1.4, -1)]],
+    ":": [[(1.5, 1), (2.5, 1), (2.5, 1.8), (1.5, 1.8), (1.5, 1)],
+          [(1.5, 4), (2.5, 4), (2.5, 4.8), (1.5, 4.8), (1.5, 4)]],
+    "-": [[(0.5, 3), (3.5, 3)]],
+    "+": [[(0.5, 3), (3.5, 3)], [(2, 1.5), (2, 4.5)]],
+    "=": [[(0.5, 2), (3.5, 2)], [(0.5, 4), (3.5, 4)]],
+    "/": [[(0, 0), (4, 6)]],
+    "(": [[(3, 6), (1.5, 4.5), (1.5, 1.5), (3, 0)]],
+    ")": [[(1, 6), (2.5, 4.5), (2.5, 1.5), (1, 0)]],
+    "_": [[(0, -1), (4, -1)]],
+    "±": [[(0.5, 4.5), (3.5, 4.5)], [(2, 3), (2, 6)], [(0.5, 1), (3.5, 1)]],
+    "×": [[(0.5, 1.5), (3.5, 4.5)], [(0.5, 4.5), (3.5, 1.5)]],
+    "Ø": [[(1, 0), (0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0)], [(0, 0), (4, 6)]],
+    "°": [[(1, 5), (2, 6), (3, 5), (2, 4), (1, 5)]],
+}
+_ADV = {" ": 3.0, ".": 3.0, ",": 3.0, ":": 3.0, "(": 4.0, ")": 4.0}
+
+
+def _text_width(txt, h):
+    k = h / 6.0
+    t = str(txt).upper()
+    if not t:
+        return 0.0
+    return (sum(_ADV.get(c, 6.0) for c in t) - 2.0) * k
+
+
+def _poly(msp, pts, layer, width=0.0):
+    if len(pts) < 2:
+        return
+    if len(pts) == 2 and not width:
+        msp.add_line(pts[0], pts[1], dxfattribs={"layer": layer})
+        return
+    attrs = {"layer": layer}
+    if width:
+        attrs["const_width"] = width
+    msp.add_lwpolyline(pts, dxfattribs=attrs)
+
+
+def _stroke_text(msp, txt, x, y, h, layer, align="left", angle=0.0):
+    """Ve chu bang net don. (x, y) la goc duong chu; align: left | center | right."""
+    t = str(txt).upper()
+    k = h / 6.0
+    w = _text_width(t, h)
+    cx = {"left": 0.0, "center": -w / 2.0, "right": -w}[align]
+    ca, sa = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+    for ch in t:
+        for stroke in _GLYPHS.get(ch, []):
+            pts = []
+            for px, py in stroke:
+                lx, ly = cx + px * k, py * k
+                pts.append((x + lx * ca - ly * sa, y + lx * sa + ly * ca))
+            _poly(msp, pts, layer)
+        cx += _ADV.get(ch, 6.0) * k
+
+
+def _dash(msp, pts, pattern, layer, width=0.0):
+    """Cat duong thanh cac doan net dut that. pattern = (net, trong, net, trong, ...) mm giay."""
+    i, rem = 0, pattern[0]
+    cur = [pts[0]]
+    for a, b in zip(pts[:-1], pts[1:]):
+        seg = math.dist(a, b)
+        if seg < 1e-9:
+            continue
+        ux, uy = (b[0] - a[0]) / seg, (b[1] - a[1]) / seg
+        pos = 0.0
+        while seg - pos > 1e-9:
+            step = min(rem, seg - pos)
+            pos += step
+            rem -= step
+            q = (a[0] + ux * pos, a[1] + uy * pos)
+            if i % 2 == 0:
+                cur.append(q)
+            if rem <= 1e-9:
+                if i % 2 == 0:
+                    _poly(msp, cur, layer, width)
+                    cur = []
+                i = (i + 1) % len(pattern)
+                rem = pattern[i]
+                if i % 2 == 0:
+                    cur = [q]
+    if i % 2 == 0 and len(cur) >= 2:
+        _poly(msp, cur, layer, width)
+
+
+def _center_line(msp, a, b):
+    n = math.dist(a, b)
+    pat = (12.0, 2.0, 1.0, 2.0) if n >= 30 else (6.0, 1.5, 1.0, 1.5)
+    _dash(msp, [a, b], pat, "CENTER")
+
+
+def _circle_pts(c, r, step_deg=3.0):
+    n = max(24, int(360.0 / step_deg))
+    return [(c[0] + r * math.cos(2 * math.pi * i / n), c[1] + r * math.sin(2 * math.pi * i / n))
+            for i in range(n + 1)]
+
+
+def _fmt_num(v):
+    t = f"{v:.2f}".rstrip("0").rstrip(".")
+    return t or "0"
+
+
+def _dim_text(template, value, prefix=""):
+    return (template or "<>").replace("<>", prefix + _fmt_num(value))
+
+
+def _arrow(msp, tip, u, layer="DIM", length=3.0, hw=0.6):
+    """Mui ten: dinh o `tip`, huong u (don vi) la huong mui ten chi toi."""
+    bx, by = tip[0] - u[0] * length, tip[1] - u[1] * length
+    nx, ny = -u[1], u[0]
+    p1 = (bx + nx * hw, by + ny * hw)
+    p2 = (bx - nx * hw, by - ny * hw)
+    msp.add_lwpolyline([tip, p1, p2], close=True, dxfattribs={"layer": layer})
+    msp.add_solid([tip, p1, p2], dxfattribs={"layer": layer})
+
+
+def _dim_lin(msp, p1, p2, side, base, text, h=3.5, layer="DIM"):
+    horiz = side in ("top", "bottom")
+    L = 3.0
+    at = {"layer": layer}
+    if horiz:
+        y = base[1]
+        sg = 1.0 if y > p1[1] else -1.0
+        for q in (p1, p2):
+            msp.add_line((q[0], q[1] + sg * 1.0), (q[0], y + sg * 1.5), dxfattribs=at)
+        lo, hi = sorted((p1[0], p2[0]))
+
+        def pt(t):
+            return (t, y)
+        d_lo, d_hi = (-1.0, 0.0), (1.0, 0.0)
+    else:
+        x = base[0]
+        sg = 1.0 if x > p1[0] else -1.0
+        for q in (p1, p2):
+            msp.add_line((q[0] + sg * 1.0, q[1]), (x + sg * 1.5, q[1]), dxfattribs=at)
+        lo, hi = sorted((p1[1], p2[1]))
+
+        def pt(t):
+            return (x, t)
+        d_lo, d_hi = (0.0, -1.0), (0.0, 1.0)
+    span = hi - lo
+    mid = (lo + hi) / 2.0
+    if span >= 2 * L + 1.0:
+        msp.add_line(pt(lo), pt(hi), dxfattribs=at)
+        _arrow(msp, pt(lo), d_lo, layer)
+        _arrow(msp, pt(hi), d_hi, layer)
+    else:   # kich thuoc nho: mui ten nam ngoai
+        msp.add_line(pt(lo - L - 1.0), pt(hi + L + 1.0), dxfattribs=at)
+        _arrow(msp, pt(lo), d_hi, layer)
+        _arrow(msp, pt(hi), d_lo, layer)
+    tw = _text_width(text, h)
+    if tw <= max(span - 1.0, 0.0):
+        if horiz:
+            _stroke_text(msp, text, mid, y + 1.0, h, layer, "center")
+        else:
+            _stroke_text(msp, text, x - 1.0, mid, h, layer, "center", angle=90)
+    else:       # chu dai hon khoang -> dat ra ngoai dau tren/phai
+        if horiz:
+            _stroke_text(msp, text, hi + L + 2.0, y - h / 2.0, h, layer, "left")
+        else:
+            _stroke_text(msp, text, x + h / 2.0, hi + L + 2.0, h, layer, "left", angle=90)
+
+
+def _dim_leader(msp, c, r, angle_deg, text, loc, h=3.5, layer="DIM"):
+    """Duong dan ghi duong kinh / ban kinh: mui ten tren cung tron, chu tren vai ngang."""
+    a = math.radians(angle_deg)
+    edge = (c[0] + r * math.cos(a), c[1] + r * math.sin(a))
+    dx, dy = edge[0] - loc[0], edge[1] - loc[1]
+    n = math.hypot(dx, dy) or 1.0
+    u = (dx / n, dy / n)
+    tw = _text_width(text, h)
+    side = 1.0 if math.cos(a) >= 0 else -1.0
+    at = {"layer": layer}
+    msp.add_line(loc, edge, dxfattribs=at)
+    msp.add_line(loc, (loc[0] + side * (tw + 2.0), loc[1]), dxfattribs=at)
+    _arrow(msp, edge, u, layer)
+    if side > 0:
+        _stroke_text(msp, text, loc[0] + 1.0, loc[1] + 1.0, h, layer, "left")
+    else:
+        _stroke_text(msp, text, loc[0] - 1.0, loc[1] + 1.0, h, layer, "right")
+
+
 def _scale_text(s):
     return f"{s:g}:1" if s >= 1 else f"1:{1 / s:g}"
 
@@ -548,31 +776,45 @@ def _choose(vbb, dims, sheet_req):
 # ----------------------------------------------------------------------------
 # Khung ban ve, khung ten, yeu cau ky thuat
 # ----------------------------------------------------------------------------
-def _text(msp, txt, x, y, h, layer="TEXT", align=TextEntityAlignment.LEFT):
+def _text(msp, txt, x, y, h, layer="TEXT", align=TextEntityAlignment.LEFT,
+          compat=False, maxw=None):
+    if compat:
+        t = str(txt)
+        if maxw:
+            w = _text_width(t, h)
+            if w > maxw:
+                h = h * maxw / w
+        _stroke_text(msp, t, x, y, h, layer, "left")
+        return None
     t = msp.add_text(txt, height=h, dxfattribs={"layer": layer})
     t.set_placement((x, y), align=align)
     return t
 
 
-def _rect(msp, x0, y0, x1, y1, layer, lw):
-    msp.add_lwpolyline([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], close=True,
-                       dxfattribs={"layer": layer, "lineweight": lw})
+def _rect(msp, x0, y0, x1, y1, layer, lw, compat=False):
+    attrs = {"layer": layer, "lineweight": lw}
+    if compat and lw >= 25:
+        attrs["const_width"] = lw / 100.0   # net day hien thi duoc ca o trinh xem don gian
+    msp.add_lwpolyline([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], close=True, dxfattribs=attrs)
 
 
-def _draw_frame_and_title(msp, sheet, scale_txt, title, material, author, date, qty=1):
+def _draw_frame_and_title(msp, sheet, scale_txt, title, material, author, date, qty=1,
+                          compat=False):
     sw, sh = SHEETS[sheet]
-    _rect(msp, 0, 0, sw, sh, "FRAME", 13)
+    _rect(msp, 0, 0, sw, sh, "FRAME", 13, compat)
     ix0, iy0, ix1, iy1 = MARGIN_LEFT, MARGIN_OTHER, sw - MARGIN_OTHER, sh - MARGIN_OTHER
-    _rect(msp, ix0, iy0, ix1, iy1, "FRAME", 50)
+    _rect(msp, ix0, iy0, ix1, iy1, "FRAME", 50, compat)
 
     x0, y0 = ix1 - TB_W, iy0
-    _rect(msp, x0, y0, ix1, iy0 + TB_H, "TITLE", 50)
+    _rect(msp, x0, y0, ix1, iy0 + TB_H, "TITLE", 50, compat)
 
     def cell(cx, cy, w, h, label, value, vh=4.0):
-        _rect(msp, x0 + cx, y0 + cy, x0 + cx + w, y0 + cy + h, "TITLE", 25)
-        _text(msp, _ascii(label), x0 + cx + 1.5, y0 + cy + h - 3.8, 2.0, "TITLE")
+        _rect(msp, x0 + cx, y0 + cy, x0 + cx + w, y0 + cy + h, "TITLE", 25, compat)
+        _text(msp, _ascii(label), x0 + cx + 1.5, y0 + cy + h - 3.8, 2.0, "TITLE",
+              compat=compat, maxw=w - 3)
         if value:
-            _text(msp, _ascii(value), x0 + cx + 1.5, y0 + cy + 2.5, vh, "TITLE")
+            _text(msp, _ascii(value), x0 + cx + 1.5, y0 + cy + 2.5, vh, "TITLE",
+                  compat=compat, maxw=w - 3)
 
     cell(0, 35, 110, 15, "TEN CHI TIET", title, 6.0)
     cell(0, 20, 70, 15, "VAT LIEU", material or "", 4.5)
@@ -587,20 +829,21 @@ def _draw_frame_and_title(msp, sheet, scale_txt, title, material, author, date, 
     return x0
 
 
-def _draw_notes(msp, tb_x0, lines):
+def _draw_notes(msp, tb_x0, lines, compat=False):
     if not lines:
         return
     x = MARGIN_LEFT + 4
     y = MARGIN_OTHER + TB_H - 5
-    max_chars = max(20, int((tb_x0 - 4 - x) / 1.75))
-    _text(msp, "YEU CAU KY THUAT:", x, y, 3.0, "TEXT")
+    hn, cw, dy = (2.2, 2.2, 3.8) if compat else (2.5, 1.75, 4.5)
+    max_chars = max(20, int((tb_x0 - 4 - x) / cw))
+    _text(msp, "YEU CAU KY THUAT:", x, y, 3.0, "TEXT", compat=compat)
     y -= 5.0
     rows = []
     for ln in lines:
         rows.extend(textwrap.wrap(_ascii(ln), max_chars, subsequent_indent="    ") or [""])
-    for row in rows[:9]:
-        _text(msp, row, x, y, 2.5, "TEXT")
-        y -= 4.5
+    for row in rows[:10]:
+        _text(msp, row, x, y, hn, "TEXT", compat=compat)
+        y -= dy
 
 
 def _sheet_bbox(views, view, pos, s):
@@ -615,8 +858,13 @@ def _sheet_bbox(views, view, pos, s):
 def export_drawing(obj, path, sheet="auto", title=None, material=None,
                    part_type=None, tolerance=None, tolerances=None,
                    surface_finish=None, author="CAD-AI", date=None,
-                   with_dimensions=True, params=None):
-    """Xuat ban ve 2D day du ra file DXF. Tra ve dict {path, sheet, scale}."""
+                   with_dimensions=True, params=None, compat=True):
+    """Xuat ban ve 2D day du ra file DXF. Tra ve dict {path, sheet, scale}.
+
+    compat=True (mac dinh): chu, kich thuoc, net dut ve bang hinh hoc co ban nen moi trinh
+    xem deu hien thi. compat=False: dung TEXT/DIMENSION/kieu net goc cua CAD (sua duoc
+    trong AutoCAD nhung mot so trinh xem don gian se khong hien thi).
+    """
     sheet = str(sheet or "auto")
     sheet = "auto" if sheet.lower() == "auto" else sheet.upper()
     if sheet not in ("auto", "A4", "A3"):
@@ -649,11 +897,14 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
     doc = ezdxf.new("R2010", setup=True)
     doc.units = ezdxf.units.MM
     msp = doc.modelspace()
-    doc.linetypes.add("CAD_HIDDEN", pattern=[5.0, 3.0, -2.0], description="Net dut")
-    doc.linetypes.add("CAD_CENTER", pattern=[13.0, 8.0, -2.0, 1.0, -2.0], description="Net cham gach")
+    if not compat:
+        doc.linetypes.add("CAD_HIDDEN", pattern=[5.0, 3.0, -2.0], description="Net dut")
+        doc.linetypes.add("CAD_CENTER", pattern=[13.0, 8.0, -2.0, 1.0, -2.0], description="Net cham gach")
+    lt_h = {} if compat else {"linetype": "CAD_HIDDEN"}
+    lt_c = {} if compat else {"linetype": "CAD_CENTER"}
     doc.layers.add("VISIBLE", color=7, lineweight=35)
-    doc.layers.add("HIDDEN", color=8, linetype="CAD_HIDDEN", lineweight=18)
-    doc.layers.add("CENTER", color=1, linetype="CAD_CENTER", lineweight=13)
+    doc.layers.add("HIDDEN", color=8, lineweight=18, **lt_h)
+    doc.layers.add("CENTER", color=1, lineweight=13, **lt_c)
     doc.layers.add("DIM", color=3, lineweight=13)
     doc.layers.add("FRAME", color=7, lineweight=50)
     doc.layers.add("TITLE", color=7, lineweight=25)
@@ -667,39 +918,52 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
     # net khuat ve truoc, net thay ve sau
     for name, v in views.items():
         for poly in v["hid"]:
-            pl = msp.add_lwpolyline([to_sheet(name, *p) for p in poly],
-                                    dxfattribs={"layer": "HIDDEN", "linetype": "CAD_HIDDEN"})
-            pl.dxf.flags |= const.LWPOLYLINE_PLINEGEN
+            pts = [to_sheet(name, *p) for p in poly]
+            if compat:
+                _dash(msp, pts, (3.0, 1.5), "HIDDEN")
+            else:
+                pl = msp.add_lwpolyline(pts, dxfattribs={"layer": "HIDDEN", "linetype": "CAD_HIDDEN"})
+                pl.dxf.flags |= const.LWPOLYLINE_PLINEGEN
         for poly in v["vis"]:
-            pl = msp.add_lwpolyline([to_sheet(name, *p) for p in poly],
-                                    dxfattribs={"layer": "VISIBLE"})
-            pl.dxf.flags |= const.LWPOLYLINE_PLINEGEN
+            pts = [to_sheet(name, *p) for p in poly]
+            if compat:
+                _poly(msp, pts, "VISIBLE", width=0.5)    # net thay day 0.5 mm
+            else:
+                pl = msp.add_lwpolyline(pts, dxfattribs={"layer": "VISIBLE"})
+                pl.dxf.flags |= const.LWPOLYLINE_PLINEGEN
 
     # duong tam
+    def center_seg(view, p1, p2):
+        a, b = to_sheet(view, *p1), to_sheet(view, *p2)
+        if compat:
+            _center_line(msp, a, b)
+        else:
+            msp.add_line(a, b, dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
+
     ex = 3.0 / s
     for item in cls:
         view = item[0]
         if item[1] == "cross":
             (cx, cy), r = item[2], item[3]
             a = r + ex
-            for p1, p2 in (((cx - a, cy), (cx + a, cy)), ((cx, cy - a), (cx, cy + a))):
-                msp.add_line(to_sheet(view, *p1), to_sheet(view, *p2),
-                             dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
+            center_seg(view, (cx - a, cy), (cx + a, cy))
+            center_seg(view, (cx, cy - a), (cx, cy + a))
         else:
             p1, p2 = item[2], item[3]
             if abs(p1[0] - p2[0]) < 1e-9:
                 p1, p2 = (p1[0], p1[1] - ex), (p2[0], p2[1] + ex)
             else:
                 p1, p2 = (p1[0] - ex, p1[1]), (p2[0] + ex, p2[1])
-            msp.add_line(to_sheet(view, *p1), to_sheet(view, *p2),
-                         dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
+            center_seg(view, p1, p2)
     for view, (cx, cy), R in circles:
         c = to_sheet(view, cx, cy)
-        msp.add_circle(c, R * s, dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
+        if compat:
+            _dash(msp, _circle_pts(c, R * s), (6.0, 1.5, 1.0, 1.5), "CENTER")
+        else:
+            msp.add_circle(c, R * s, dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
         a = R + ex
-        for p1, p2 in (((cx - a, cy), (cx + a, cy)), ((cx, cy - a), (cx, cy + a))):
-            msp.add_line(to_sheet(view, *p1), to_sheet(view, *p2),
-                         dxfattribs={"layer": "CENTER", "linetype": "CAD_CENTER"})
+        center_seg(view, (cx - a, cy), (cx + a, cy))
+        center_seg(view, (cx, cy - a), (cx, cy + a))
 
     # kich thuoc (don vi to giay; dimlfac = 1/ty le de chu hien thi dung kich thuoc that)
     ov = {"dimtxt": 3.5, "dimasz": 3.0, "dimexe": 1.5, "dimexo": 1.0, "dimgap": 1.0,
@@ -721,8 +985,11 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
             base, ang = (vx0 - off, p1[1]), 90
         else:
             base, ang = (vx1 + off, p1[1]), 90
-        msp.add_linear_dim(base=base, p1=p1, p2=p2, angle=ang, text=text,
-                           override=ov, dxfattribs={"layer": "DIM"}).render()
+        if compat:
+            _dim_lin(msp, p1, p2, side, base, _dim_text(d["text"], d["span"]))
+        else:
+            msp.add_linear_dim(base=base, p1=p1, p2=p2, angle=ang, text=text,
+                               override=ov, dxfattribs={"layer": "DIM"}).render()
     for d in dims:
         if d["kind"] == "lin":
             continue
@@ -730,7 +997,13 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
         r = d["r"] * s
         a = math.radians(d["angle"])
         loc = (c[0] + (r + 7.0) * math.cos(a), c[1] + (r + 7.0) * math.sin(a))
-        if d["kind"] == "dia":
+        if compat:
+            if d["kind"] == "dia":
+                txt = _dim_text(d["text"], 2 * d["r"], "Ø")
+            else:
+                txt = _dim_text(d["text"], d["r"], "R")
+            _dim_leader(msp, c, r, d["angle"], txt, loc)
+        elif d["kind"] == "dia":
             msp.add_diameter_dim(center=c, radius=r, angle=d["angle"], location=loc,
                                  text=d["text"], override=ov,
                                  dxfattribs={"layer": "DIM"}).render()
@@ -741,7 +1014,7 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
 
     # khung, khung ten, yeu cau ky thuat
     tb_x0 = _draw_frame_and_title(msp, sheet_name, _scale_text(s), title, material,
-                                  author, date)
+                                  author, date, compat=compat)
     notes = ["1. Kich thuoc ghi bang mm."]
     if tolerance:
         notes.append(f"{len(notes) + 1}. Dung sai chung: ±{tolerance:g} mm.")
@@ -761,7 +1034,7 @@ def export_drawing(obj, path, sheet="auto", title=None, material=None,
         if items:
             notes.append(f"{len(notes) + 1}. Thong so: " + ", ".join(items))
     notes.append(f"{len(notes) + 1}. Ve theo goc chieu thu nhat (TCVN/ISO).")
-    _draw_notes(msp, tb_x0, notes)
+    _draw_notes(msp, tb_x0, notes, compat)
 
     doc.saveas(path)
     return {"path": path, "sheet": sheet_name, "scale": _scale_text(s)}
