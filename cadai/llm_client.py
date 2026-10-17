@@ -64,8 +64,25 @@ Quy tac base_dimensions theo part_type:
   connecting_rod: {"length":..,"big_end_diameter":..,"small_end_diameter":..,"thickness":.., "big_bore":.. (tuy chon), "small_bore":.. (tuy chon)}
     (thanh truyen: noi piston voi truc khuyu; big_end_diameter > small_end_diameter; length > big_end_diameter)
 
-Quy tac feature params:
-  hole, fillet, chamfer, pocket, boss, slot, keyway, bolt_circle, radial_hole, counterbore, side_lugs, thread
+Quy tac features: moi feature la {"type": "...", "params": {...}}. DUNG DUNG TEN tham so duoi day, KHONG tu doi ten.
+  Truc (shaft, stepped_shaft) nam doc theo truc Z, dau truc o z=0. Toa do [x, y] la so voi tam mat tren (mm).
+  hole:        {"diameter":.., "positions":[[x,y],...] (tuy chon, mac dinh [[0,0]]), "depth": "through"|so mm (tuy chon)}
+    (lo khoan thang tu mat tren +Z. Truc tron: [[0,0]] la lo khoan doc tam truc, tu dau truc)
+  radial_hole: {"diameter":.., "height_from_base":..}
+    (lo khoan NGANG xuyen qua truc, vuong goc voi truc; height_from_base la vi tri doc truc tinh tu dau truc, mm;
+     vd "lo ngang phi5 cach dau truc 50mm" -> {"diameter":5,"height_from_base":50}; thieu thi khoan o giua truc)
+  keyway:      {"length":.., "width":.. (tuy chon), "depth":.. (tuy chon), "z_start":.. (tuy chon, mac dinh 0), "shaft_diameter":.. (tuy chon)}
+    (ranh then tren mat ngoai truc, doc theo truc, bat dau tai z_start; thieu width/depth thi tu lay theo DIN 6885
+     tu duong kinh truc; vd "ranh then 6x30 cach dau truc 10mm" -> {"width":6,"length":30,"z_start":10})
+  fillet:      {"radius":.., "edges":"all"|"top"|"bottom"|"corners" (tuy chon)}
+  chamfer:     {"distance":.., "edges":"all"|"top"|"bottom" (tuy chon)}
+  pocket:      {"length":.., "width":.., "depth":.., "position":[x,y]}
+  boss:        {"diameter":.., "height":.., "position":[x,y]}
+  slot:        {"length":.., "width":.., "position":[x,y], "depth": so mm|"through" (tuy chon), "angle": do (tuy chon)}
+  bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}
+  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}
+  side_lugs:   {"lug_length":.., "lug_thickness":.. (tuy chon)}   (chi dung cho pillow_block)
+  thread:      {"designation":"M8", "diameter":.. (duong kinh lo khoan truoc ta-ro), "positions":[[x,y],...], "depth": "through"|so mm (tuy chon)}
 
 Quy tac tolerances (DUNG SAI kich thuoc, TUY CHON):
   Chi them khi nguoi dung NOI RO dung sai. KHONG tu bia ra dung sai. Neu khong co thi bo khoa nay hoac de {}.
