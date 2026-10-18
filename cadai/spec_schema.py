@@ -20,6 +20,8 @@ SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
 )
+# Hinh dang cac doan cua stepped_shaft
+SEGMENT_SHAPES = ("cylinder", "taper", "spline", "eccentric")
 
 # ---- Dung sai (tolerances) va do nham (surface_finish) ----
 # Cap dung sai ISO: chu hoa = lo (H7, K7), chu thuong = truc (g6, h6, k6); so = cap chinh xac IT1..IT18
@@ -33,6 +35,10 @@ MAX_RA = 100.0
 
 class SpecValidationError(ValueError):
     pass
+
+
+def _is_num(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 @dataclass
@@ -172,6 +178,40 @@ def _validate_tolerances_and_finish(spec: PartSpec) -> list[str]:
     return errs
 
 
+def _validate_segment_shape(i: int, seg: dict) -> list[str]:
+    """Kiem tra hinh dang rieng cua tung doan stepped_shaft (taper / spline / eccentric)."""
+    errs: list[str] = []
+    shape = seg.get("shape", "cylinder")
+    if shape not in SEGMENT_SHAPES:
+        return [f"segments[{i}].shape='{shape}' khong hop le (chi chap nhan {SEGMENT_SHAPES})"]
+
+    d = seg.get("diameter")
+
+    if shape == "taper":
+        ed = seg.get("end_diameter")
+        if not _is_num(ed) or ed <= 0:
+            errs.append(f"segments[{i}] (taper) can 'end_diameter' la so duong")
+
+    elif shape == "eccentric":
+        off = seg.get("offset")
+        if not _is_num(off) or off <= 0:
+            errs.append(f"segments[{i}] (eccentric) can 'offset' la so duong (do lech tam, mm)")
+
+    elif shape == "spline":
+        if "spline_count" in seg:
+            n = seg["spline_count"]
+            if not _is_num(n) or int(n) != n or n < 2:
+                errs.append(f"segments[{i}]['spline_count'] phai la so nguyen >= 2")
+        for key in ("spline_width", "spline_depth"):
+            if key in seg and (not _is_num(seg[key]) or seg[key] <= 0):
+                errs.append(f"segments[{i}]['{key}'] phai la so duong")
+        sd = seg.get("spline_depth")
+        if _is_num(sd) and _is_num(d) and sd >= d / 2:
+            errs.append(f"segments[{i}]: spline_depth phai nho hon ban kinh doan (diameter/2)")
+
+    return errs
+
+
 def validate_spec(spec: PartSpec) -> list[str]:
     errors: list[str] = []
 
@@ -285,6 +325,7 @@ def validate_spec(spec: PartSpec) -> list[str]:
                         errors.append(f"segments[{i}] thieu truong '{key}'")
                     elif not isinstance(seg[key], (int, float)) or seg[key] <= 0:
                         errors.append(f"segments[{i}]['{key}'] phai la so duong")
+                errors.extend(_validate_segment_shape(i, seg))
 
     if spec.part_type == "pillow_block":
         bh = spec.base_dimensions.get("base_height")

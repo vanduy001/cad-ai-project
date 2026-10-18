@@ -28,7 +28,17 @@ Quy tac base_dimensions theo part_type:
   bracket:       {"length":..,"width":..,"thickness":.., "leg_height":.., "leg_thickness":..}
   flange:        {"outer_diameter":..,"inner_diameter":..,"thickness":..}
   shaft:         {"diameter":..,"length":..}
-  stepped_shaft: {"segments":[{"diameter":..,"length":..}, ...]}
+  stepped_shaft: {"segments":[{"diameter":..,"length":.., "shape":.. (tuy chon), ...}, ...]}
+    (truc nhieu bac, cac doan noi tiep nhau doc truc Z. Moi doan co khoa "shape" TUY CHON, mac dinh "cylinder":
+       "cylinder": hinh tru, chi can diameter, length
+       "taper": doan hinh non/con; "diameter" la dk o dau doan (phia z nho), them "end_diameter" la dk o cuoi doan
+                vd "doan con dai 30 tu phi20 giam xuong phi15" -> {"shape":"taper","diameter":20,"end_diameter":15,"length":30}
+       "spline": doan then hoa/ranh (N ranh chu nhat doc truc quanh doan); "diameter" la dk ngoai,
+                tuy chon "spline_count" (so ranh, mac dinh 6), "spline_width" (rong ranh mm), "spline_depth" (sau ranh mm)
+                vd "doan then hoa phi25 dai 40, 8 ranh rong 4 sau 2" -> {"shape":"spline","diameter":25,"length":40,"spline_count":8,"spline_width":4,"spline_depth":2}
+       "eccentric": doan/vanh LECH TAM; them "offset" la do lech tam (mm) so voi duong tam truc
+                vd "vanh lech tam phi30 dai 15 lech 2mm" -> {"shape":"eccentric","diameter":30,"length":15,"offset":2}
+     Dung dung cac khoa tren, KHONG tu doi ten. Doan taper/spline/eccentric KHONG bi tu choi.)
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
   pillow_block:  {"length":..,"depth":..,"height":..,"base_height":..,"top_width":..,"seat_radius":..}
   bolt:          {"diameter":..,"length":.., "head_width":.. (tuy chon), "head_height":.. (tuy chon)}
