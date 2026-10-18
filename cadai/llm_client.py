@@ -76,23 +76,39 @@ Quy tac base_dimensions theo part_type:
 
 Quy tac features: moi feature la {"type": "...", "params": {...}}. DUNG DUNG TEN tham so duoi day, KHONG tu doi ten.
   Truc (shaft, stepped_shaft) nam doc theo truc Z, dau truc o z=0. Toa do [x, y] la so voi tam mat tren (mm).
-  hole:        {"diameter":.., "positions":[[x,y],...] (tuy chon, mac dinh [[0,0]]), "depth": "through"|so mm (tuy chon)}
-    (lo khoan thang tu mat tren +Z. Truc tron: [[0,0]] la lo khoan doc tam truc, tu dau truc)
+  hole:        {"diameter":.., "positions":[[x,y],...] (tuy chon, mac dinh [[0,0]]), "depth": "through"|so mm (tuy chon), "end": "end"|"start" (tuy chon)}
+    (lo khoan thang tu mat tren +Z (dau cuoi truc, mac dinh end="end"). Truc tron: [[0,0]] la lo khoan doc tam truc.
+     Lo co do sau khoan tu dau z=0 cua truc thi them "end":"start"; vd "lo phi8 sau 20 o dau trai" -> {"diameter":8,"depth":20,"end":"start"}.
+     Lo o CA HAI DAU truc thi tao 2 feature hole, mot "end":"start", mot "end":"end")
   radial_hole: {"diameter":.., "height_from_base":..}
     (lo khoan NGANG xuyen qua truc, vuong goc voi truc; height_from_base la vi tri doc truc tinh tu dau truc, mm;
      vd "lo ngang phi5 cach dau truc 50mm" -> {"diameter":5,"height_from_base":50}; thieu thi khoan o giua truc)
-  keyway:      {"length":.., "width":.. (tuy chon), "depth":.. (tuy chon), "z_start":.. (tuy chon, mac dinh 0), "shaft_diameter":.. (tuy chon)}
+  keyway:      {"length":.., "width":.. (tuy chon), "depth":.. (tuy chon), "z_start":.. (tuy chon, mac dinh 0), "shaft_diameter":.. (tuy chon), "open": "start"|"end" (tuy chon)}
     (ranh then tren mat ngoai truc, doc theo truc, bat dau tai z_start; thieu width/depth thi tu lay theo DIN 6885
-     tu duong kinh truc; vd "ranh then 6x30 cach dau truc 10mm" -> {"width":6,"length":30,"z_start":10})
+     tu duong kinh truc; vd "ranh then 6x30 cach dau truc 10mm" -> {"width":6,"length":30,"z_start":10}.
+     RANH THEN HO (chay thang ra mot dau truc, khong co day ranh kin): them "open": "start" (ra dau z=0, ranh dai length tu dau do)
+     hoac "open": "end" (ra dau cuoi truc, ranh dai length tinh tu dau cuoi vao); khi do khong can z_start.
+     vd "ranh then ho dai 30 o dau cuoi truc" -> {"length":30,"open":"end"})
   fillet:      {"radius":.., "edges":"all"|"top"|"bottom"|"corners" (tuy chon)}
   chamfer:     {"distance":.., "edges":"all"|"top"|"bottom" (tuy chon)}
   pocket:      {"length":.., "width":.., "depth":.., "position":[x,y]}
   boss:        {"diameter":.., "height":.., "position":[x,y]}
   slot:        {"length":.., "width":.., "position":[x,y], "depth": so mm|"through" (tuy chon), "angle": do (tuy chon)}
   bolt_circle: {"count":.., "hole_diameter":.., "pcd":..}
-  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...]}
+  counterbore: {"diameter":.., "cbore_diameter":.., "cbore_depth":.., "positions":[[x,y],...] (tuy chon, mac dinh [[0,0]]), "depth": "through"|so mm (tuy chon), "end": "end"|"start" (tuy chon)}
+    (lo bac: "diameter" la lo nho, "cbore_diameter"/"cbore_depth" la phan loe; "depth" la TONG do sau lo tinh tu mat.
+     Mac dinh khoan tu mat +Z (dau cuoi truc); them "end":"start" de khoan tu dau z=0.
+     Lo bac o CA HAI DAU truc thi tao 2 feature counterbore, mot "end":"start", mot "end":"end";
+     vd "lo bac hai dau truc, lo phi8, loe phi14 sau 5, sau tong 20" -> 2 feature {"diameter":8,"cbore_diameter":14,"cbore_depth":5,"depth":20,"end":"start"} va {...,"end":"end"})
   side_lugs:   {"lug_length":.., "lug_thickness":.. (tuy chon)}   (chi dung cho pillow_block)
+  undercut:    {"width":.., "depth":.., "z":.., "from_end":.. (tuy chon, true = z tinh tu dau cuoi truc), "diameter":.. (tuy chon)}
+    (ranh thoat dao: ranh TRON quanh truc, rong width doc truc, sau depth theo ban kinh, bat dau tai vi tri z tinh tu dau truc;
+     vd "ranh thoat dao rong 3 sau 0.5 cach dau truc 40mm" -> {"width":3,"depth":0.5,"z":40})
   thread:      {"designation":"M8", "diameter":.. (duong kinh lo khoan truoc ta-ro), "positions":[[x,y],...], "depth": "through"|so mm (tuy chon)}
+    (REN TRONG: khoan lo truoc ta-ro. REN NGOAI tren truc (tien ren ngoai): dung
+     {"designation":"M20", "kind":"external", "z_start":.. (tuy chon), "length":.. (tuy chon, doan co ren)};
+     ren ngoai CHI GHI CHU ky hieu, hinh 3D van la truc tron, khong cat ren that;
+     vd "tien ren M20 dai 25 o dau cuoi truc" -> {"designation":"M20","kind":"external","z_start":<tong dai - 25>,"length":25})
 
 Quy tac tolerances (DUNG SAI kich thuoc, TUY CHON):
   Chi them khi nguoi dung NOI RO dung sai. KHONG tu bia ra dung sai. Neu khong co thi bo khoa nay hoac de {}.
@@ -119,7 +135,8 @@ Quy tac surface_finish (DO NHAM be mat Ra, TUY CHON):
 
 QUAN TRONG - Tu choi yeu cau khong phu hop:
 Neu yeu cau KHONG the mo ta bang cac part_type tren, HOAC khong du thong tin,
-HOAC khong phai chi tiet co khi, thi tra ve:
+HOAC khong phai chi tiet co khi, HOAC yeu cau ren xoan 3D that (ren ngoai/ren trong dung mat ren xoan),
+ranh dau xoan (helical groove), hay bien dang then hoa than khai (involute), thi tra ve:
 {"error": "<mo ta ngan gon bang tieng Viet ly do khong xu ly duoc>"}
 """
 

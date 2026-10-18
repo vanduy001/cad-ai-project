@@ -11,7 +11,7 @@ THEM FEATURE MOI:
 """
 from . import (
     hole, fillet, chamfer, pocket, boss, slot, keyway,
-    bolt_circle, radial_hole, counterbore, side_lugs, thread,
+    bolt_circle, radial_hole, counterbore, side_lugs, thread, undercut,
 )
 
 APPLIERS = {
@@ -27,4 +27,5 @@ APPLIERS = {
     "counterbore": counterbore.apply,
     "side_lugs": side_lugs.apply,
     "thread": thread.apply,
+    "undercut": undercut.apply,
 }

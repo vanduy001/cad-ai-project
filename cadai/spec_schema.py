@@ -19,6 +19,7 @@ SUPPORTED_PART_TYPES = (
 SUPPORTED_FEATURE_TYPES = (
     "hole", "fillet", "chamfer", "pocket", "boss", "slot",
     "keyway", "bolt_circle", "radial_hole", "counterbore", "side_lugs", "thread",
+    "undercut",
 )
 # Hinh dang cac doan cua stepped_shaft
 SEGMENT_SHAPES = ("cylinder", "taper", "spline", "eccentric")
