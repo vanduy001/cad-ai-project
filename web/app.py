@@ -133,7 +133,7 @@ def generate(request: Request, body: GenerateRequest):
     output_path = OUTPUT_DIR / f"{file_id}.step"
 
     try:
-        client = get_openrouter_client() 
+        client = get_openrouter_client()
     except Exception as e:
         return {"success": False, "message": f"Loi cau hinh Gemini API key: {e}"}
 
@@ -158,6 +158,7 @@ def generate(request: Request, body: GenerateRequest):
             "message": "Da tao mo hinh 3D thanh cong.",
             "download_url": f"/download/{file_id}",
             "download_dxf_url": f"/download_dxf/{file_id}",
+            "download_stl_url": f"/download_stl/{file_id}",
             "metrics": log.final_metrics,
             "pipeline": info,
         }
@@ -184,6 +185,28 @@ def download(file_id: str):
     if not path.exists():
         return {"error": "File khong ton tai"}
     return FileResponse(path, filename=f"{file_id}.step", media_type="application/step")
+
+
+@app.get("/download_stl/{file_id}")
+def download_stl(file_id: str):
+    """Xuat luoi STL tu file STEP da tao (dung cho xem truoc 3D va tai ve)."""
+    if not re.fullmatch(r"[0-9a-f]{8}", file_id):
+        return {"error": "File khong hop le"}
+    step_path = OUTPUT_DIR / f"{file_id}.step"
+    if not step_path.exists():
+        return {"error": "File khong ton tai"}
+    stl_path = OUTPUT_DIR / f"{file_id}.stl"
+    if not stl_path.exists():
+        try:
+            import cadquery as cq
+            shape = cq.importers.importStep(str(step_path))
+            cq.exporters.export(
+                shape, str(stl_path), exportType="STL",
+                tolerance=0.05, angularTolerance=0.1,
+            )
+        except Exception as e:
+            return {"error": f"Khong xuat duoc STL: {type(e).__name__}: {e}"}
+    return FileResponse(stl_path, filename=f"{file_id}.stl", media_type="model/stl")
 
 
 @app.get("/download_dxf/{file_id}")

@@ -1,506 +1,459 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html lang="vi" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CAD AI — Mô tả bằng lời, nhận file STEP</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AIM-CAD Generation</title>
 <style>
-:root {
-  --bg: #0a0f1a; --surface: #10182a; --surface-2: #161f36; --border: #212c42;
-  --teal: #2dd4bf; --amber: #e08d3c; --text: #e8ecf4; --text-dim: #8b96ac;
-  --text-faint: #5b6478; --danger: #f87171; --success: #4ade80;
+:root{
+  --bg:#0b0f1a; --panel:#0e1424; --panel2:#111a30; --line:#1e2a47; --text:#e6ebf5; --muted:#7d8bab;
+  --accent:#e8a23a; --accent-text:#1b1200; --ok:#3ecf8e; --okbg:#12332a; --err:#ff5d5d; --errbg:#3a1616;
+  --view:#0a0d17; --input:#131c36; --warnbg:#2a2412; --warnbd:#4a3d12; --warntxt:#f2d27a;
+  --teal:#38d9c0; --teal-text:#04231e; --workbg:#10303a; --work:#38d9c0;
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
-.mono { font-family: 'JetBrains Mono', monospace; }
-
-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
-.logo-mark { width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--teal), #1a8a7d); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #06201c; }
-nav { display: flex; gap: 28px; font-size: 14px; color: var(--text-dim); }
-nav a { color: inherit; text-decoration: none; }
-nav a:hover { color: var(--text); }
-
-.hero { max-width: 780px; margin: 0 auto; padding: 60px 40px 32px; }
-.eyebrow { display: inline-block; font-size: 12px; font-weight: 600; color: var(--teal); letter-spacing: 0.06em; margin-bottom: 18px; padding: 5px 12px; border: 1px solid rgba(45,212,191,0.3); border-radius: 20px; background: rgba(45,212,191,0.06); }
-h1 { font-size: 34px; line-height: 1.25; margin: 0 0 14px; font-weight: 700; letter-spacing: -0.01em; }
-.hero p { font-size: 16px; color: var(--text-dim); line-height: 1.6; max-width: 60ch; margin: 0; }
-
-.progress-wrap { max-width: 1080px; margin: 0 auto; padding: 0 40px 8px; }
-.progress-label { font-size: 12px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; margin-bottom: 14px; }
-.progress-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.pstep { display: flex; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; transition: border-color .2s; }
-.pstep.active { border-color: var(--teal); }
-.pstep.done { border-color: rgba(74,222,128,0.4); }
-.pdot { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); flex-shrink: 0; margin-top: 2px; transition: all .2s; }
-.pstep.active .pdot { background: var(--teal); border-color: var(--teal); box-shadow: 0 0 0 4px rgba(45,212,191,0.15); }
-.pstep.done .pdot { background: var(--success); border-color: var(--success); }
-.ptitle { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
-.pdesc { font-size: 12px; color: var(--text-faint); line-height: 1.4; }
-
-.workspace { max-width: 1080px; margin: 24px auto 24px; padding: 0 40px; display: grid; grid-template-columns: 1fr 0.9fr 1fr; gap: 20px; }
-@media (max-width: 980px) { .workspace { grid-template-columns: 1fr; } .progress-steps { grid-template-columns: 1fr; } }
-
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
-.panel-label { font-size: 12px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; margin-bottom: 6px; }
-.panel h2 { font-size: 17px; margin: 0 0 18px; font-weight: 600; }
-
-.textarea-wrap { position: relative; }
-textarea { width: 100%; min-height: 110px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: inherit; font-size: 14.5px; padding: 14px; padding-right: 52px; resize: vertical; line-height: 1.5; }
-textarea::placeholder { color: var(--text-faint); }
-textarea:focus { outline: none; border-color: var(--teal); }
-
-.mic-btn { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim); cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: border-color .15s, color .15s; }
-.mic-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
-.mic-btn.listening { background: var(--danger); border-color: var(--danger); color: #fff; animation: pulse 1s infinite; }
-.mic-btn:disabled { opacity: .35; cursor: not-allowed; }
-.mic-status { font-size: 11.5px; color: var(--text-faint); margin-top: 8px; min-height: 16px; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
-
-.examples { margin-top: 16px; }
-.examples-label { font-size: 12.5px; color: var(--text-faint); margin-bottom: 8px; }
-.chip { display: inline-block; font-size: 12px; color: var(--text-dim); border: 1px solid var(--border); background: var(--surface-2); padding: 6px 11px; border-radius: 8px; margin: 0 6px 6px 0; cursor: pointer; transition: border-color .15s, color .15s; }
-.chip:hover { border-color: var(--teal); color: var(--teal); }
-
-.generate-btn { margin-top: 18px; width: 100%; padding: 13px; font-size: 14.5px; font-weight: 600; background: var(--amber); color: #241304; border: none; border-radius: 10px; cursor: pointer; transition: filter .15s; }
-.generate-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.generate-btn:disabled { background: var(--surface-2); color: var(--text-faint); cursor: not-allowed; }
-.hint { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; text-align: center; }
-
-/* preview panel */
-.preview-box { min-height: 200px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition: border-color .3s; padding: 12px; }
-.preview-box.working { border-color: var(--teal); }
-.preview-box.done { border-color: var(--success); }
-.preview-box.error { border-color: var(--danger); }
-.preview-icon { width: 64px; height: 64px; transition: opacity .3s; }
-.preview-caption { text-align: center; font-size: 12px; color: var(--text-faint); margin-top: 12px; }
-.pl-list { list-style: none; margin: 0; padding: 0; width: 100%; }
-.pl-item { display: flex; align-items: center; gap: 10px; padding: 7px 4px; font-size: 13px; color: var(--text-faint); }
-.pl-mark { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #06201c; }
-.pl-item.done { color: var(--text); }
-.pl-item.done .pl-mark { background: var(--success); border-color: var(--success); }
-.pl-item.error { color: #fca5a5; }
-.pl-item.error .pl-mark { background: var(--danger); border-color: var(--danger); }
-.pl-item.running { color: var(--teal); }
-.pl-item.running .pl-mark { border-color: var(--teal); border-top-color: transparent; animation: spin .8s linear infinite; }
-
-/* spec panel */
-.spec-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.spec-row:last-of-type { border-bottom: none; }
-.spec-row .k { color: var(--text-dim); }
-.spec-row .v { color: var(--text); }
-.spec-row .v.empty { color: var(--text-faint); }
-.status-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.02em; }
-.status-badge.idle { background: var(--surface-2); color: var(--text-faint); }
-.status-badge.working { background: rgba(45,212,191,0.12); color: var(--teal); }
-.status-badge.done { background: rgba(74,222,128,0.12); color: var(--success); }
-.status-badge.error { background: rgba(248,113,113,0.12); color: var(--danger); }
-
-.download-btn { display: block; width: 100%; text-align: center; margin-top: 16px; padding: 12px; background: var(--teal); color: #06201c; font-weight: 600; font-size: 14px; border-radius: 10px; text-decoration: none; }
-.download-btn:hover { filter: brightness(1.06); }
-.error-box { margin-top: 14px; padding: 12px 14px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); border-radius: 8px; font-size: 12.5px; color: #fca5a5; line-height: 1.5; }
-.info-box { margin-top: 14px; padding: 12px 14px; background: rgba(45,212,191,0.06); border: 1px solid rgba(45,212,191,0.25); border-radius: 8px; font-size: 12.5px; color: #7fe6d8; line-height: 1.5; }
-
-/* pipeline detail */
-.detail-wrap { max-width: 1080px; margin: 0 auto 60px; padding: 0 40px; }
-.detail-wrap .panel { padding: 22px 26px; }
-details.dstep { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--surface-2); }
-details.dstep > summary { cursor: pointer; padding: 12px 14px; font-size: 13.5px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
-details.dstep > summary::-webkit-details-marker { display: none; }
-details.dstep.done > summary .tag { color: var(--success); }
-details.dstep.error > summary .tag { color: var(--danger); }
-details.dstep.pending > summary .tag { color: var(--text-faint); }
-.tag { font-size: 11.5px; font-weight: 600; }
-.dbody { padding: 0 14px 14px; }
-.io-label { font-size: 11px; font-weight: 600; color: var(--text-faint); letter-spacing: 0.06em; margin: 12px 0 6px; }
-.io-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
-pre.code { margin: 0; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; color: #c9d3e6; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
-table.req { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-table.req td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-table.req td:first-child { color: var(--text-dim); width: 34%; }
-
-/* năng lực hệ thống */
-.capability-wrap { max-width: 1080px; margin: 0 auto 60px; padding: 0 40px; }
-.cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
-.cap-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-.cap-name { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
-.cap-desc { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
-.cap-not { margin-top: 18px; font-size: 12.5px; color: var(--text-dim); line-height: 1.7; }
-.cap-not b { color: var(--text); }
-
-footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-faint); flex-wrap: wrap; gap: 8px; }
-.spinner { display: inline-block; width: 13px; height: 13px; margin-right: 7px; border: 2px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
-@keyframes spin { to { transform: rotate(360deg); } }
+[data-theme="light"]{
+  --bg:#f3f5f9; --panel:#ffffff; --panel2:#f6f7fb; --line:#dfe3ec; --text:#1b2233; --muted:#7a8399;
+  --accent:#d9902f; --accent-text:#ffffff; --ok:#1f8f5f; --okbg:#e1f3ea; --err:#d93636; --errbg:#fbe3e3;
+  --view:#e4e6ef; --input:#eef0f7; --warnbg:#fbeedd; --warnbd:#f0d8b5; --warntxt:#7a4b10;
+  --teal:#1f8f7e; --teal-text:#fff; --workbg:#dff3ef; --work:#1f8f7e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 Inter,system-ui,Segoe UI,Roboto,sans-serif;
+  min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header .lab{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.5px}
+header h1{font-size:16px;margin:0}
+header .sub{color:var(--muted)}
+header .sp{flex:1}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text)}
+.chip.btn{cursor:pointer}
+header .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+main{flex:1;display:grid;grid-template-columns:minmax(340px,36%) 1fr;grid-template-rows:minmax(420px,1fr) minmax(300px,1fr);gap:10px;padding:10px;min-height:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.card h2{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.3px;display:flex;justify-content:space-between;align-items:center}
+.sel{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+.ta-wrap{position:relative}
+textarea{width:100%;background:var(--input);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 44px 10px 10px;
+  font:inherit;font-size:14px;resize:vertical;min-height:84px;outline:none}
+textarea:focus{border-color:var(--accent)}
+.mic{position:absolute;right:8px;bottom:8px;width:28px;height:28px;border-radius:50%;border:0;background:#3ecf5a;color:#06210f;cursor:pointer;font-size:14px}
+.mic.listening{background:var(--err);color:#fff;animation:pulse 1s infinite}
+.mic:disabled{opacity:.35;cursor:not-allowed}
+@keyframes pulse{50%{opacity:.5}}
+.micst{font-size:11px;color:var(--muted);min-height:14px;margin-top:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.ex{font-size:11.5px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:4px 9px;border-radius:6px;cursor:pointer}
+.ex:hover{border-color:var(--teal);color:var(--teal)}
+.row{display:flex;align-items:center;gap:10px;margin:10px 0 6px;flex-wrap:wrap}
+.primary{background:var(--accent);color:var(--accent-text);border:0;border-radius:6px;padding:8px 16px;font-weight:600;cursor:pointer;font-size:13px}
+.primary:disabled{opacity:.5;cursor:not-allowed}
+.badge{border-radius:12px;padding:3px 10px;font-size:12px;background:var(--panel2);color:var(--muted)}
+.badge.ok{background:var(--okbg);color:var(--ok)}
+.badge.work{background:var(--workbg);color:var(--work)}
+.badge.err{background:var(--errbg);color:var(--err)}
+.summary{flex:1;min-height:120px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;white-space:pre-wrap;line-height:1.6}
+.left{grid-row:1;grid-column:1}
+.tree{grid-row:2;grid-column:1}
+.view3d{grid-row:1;grid-column:2}
+.status{grid-row:2;grid-column:2}
+.toolbar{display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.tb{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:6px;cursor:pointer;font-size:14px}
+.tb.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tb-sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+#viewport{flex:1;min-height:300px;background:var(--view);border:1px solid var(--line);border-radius:8px;position:relative;overflow:hidden}
+#viewport canvas{display:block;width:100%;height:100%}
+#overlay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:20px;pointer-events:none;font-size:13px}
+.spin{display:inline-block;width:13px;height:13px;margin-right:7px;border:2px solid var(--line);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.tree-scroll{flex:1;overflow:auto;min-height:0}
+.hint{color:var(--muted);font-size:11.5px;margin-bottom:8px}
+.feat{display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border-radius:6px;cursor:pointer}
+.feat:hover,.feat.active{background:var(--panel2)}
+.feat.child{margin-left:16px}
+.sq{width:9px;height:9px;border-radius:2px;margin-top:5px;flex:none}
+.feat .meta{flex:1;min-width:0}
+.feat .name{font-weight:600}
+.feat .name em{font-style:normal;color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
+.feat .det{font:10.5px ui-monospace,Consolas,monospace;color:var(--muted);word-break:break-word}
+.ok{background:var(--okbg);color:var(--ok);border-radius:10px;padding:2px 9px;font-size:11px;font-weight:600}
+.vstat{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.vstat .sp{flex:1}
+.vstat b.w{color:var(--accent)} .vstat b.e{color:var(--err)}
+.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px 10px;font-size:12px;cursor:pointer}
+.coverage{margin-top:12px;background:var(--warnbg);border:1px solid var(--warnbd);color:var(--warntxt);border-radius:6px;padding:9px 12px;font-size:12.5px;line-height:1.6}
+.errbox{margin-top:12px;background:var(--errbg);border:1px solid var(--err);color:var(--err);border-radius:6px;padding:9px 12px;font-size:12.5px;line-height:1.5;white-space:pre-wrap}
+.bar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.bar label{font-size:11px;color:var(--muted)}
+.bar input{flex:0 1 300px;background:var(--input);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px 10px;outline:none;font-size:12.5px}
+.teal{background:var(--teal);color:var(--teal-text);border:0;border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer}
+.teal:disabled,.dl:disabled{opacity:.45;cursor:not-allowed}
+.dl{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:12.5px}
+.dl.main{border-color:var(--teal);color:var(--teal)}
+footer{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+footer b{color:var(--text);font-weight:500}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;width:min(820px,94vw);max-height:86vh;padding:0}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.dhead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600}
+.dbody{padding:12px 16px;overflow:auto;max-height:70vh}
+.dbody h3{font-size:12px;color:var(--muted);text-transform:uppercase;margin:14px 0 6px}
+.dbody pre{margin:0;padding:10px;background:var(--view);border:1px solid var(--line);border-radius:8px;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+@media(max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:auto}
+  .left,.tree,.view3d,.status{grid-column:1;grid-row:auto}
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo"><div class="logo-mark">AI</div>CAD AI</div>
-  <nav><a href="#">Trang chủ</a><a href="#vi-du">Ví dụ</a><a href="#quy-trinh">Quy trình</a><a href="#nang-luc">Năng lực</a></nav>
+  <span class="lab">AIM-LAB</span>
+  <h1>AIM-CAD Generation</h1>
+  <span class="sub">typed spec → CAD → STEP</span>
+  <span class="sp"></span>
+  <div class="right">
+    <span class="chip btn" id="themeBtn" title="Đổi giao diện sáng/tối">☾</span>
+    <span class="chip" id="chipState">trạng thái: chờ</span>
+    <span class="chip">đơn vị: mm</span>
+    <span class="chip">parser: LLM (OpenRouter)</span>
+    <span class="chip">v2.1.0 · schema 2</span>
+  </div>
 </header>
 
-<div class="hero">
-  <span class="eyebrow">Đồ án tốt nghiệp — AI thiết kế CAD</span>
-  <h1>Mô tả bằng lời, nhận file STEP</h1>
-  <p>Gõ hoặc nói mô tả 1 chi tiết cơ khí bằng ngôn ngữ tự nhiên. Hệ thống tự phân tích, dựng mô hình 3D tham số và xuất file STEP chuẩn công nghiệp.</p>
-</div>
+<main>
+  <section class="card left">
+    <h2>Yêu cầu thiết kế</h2>
+    <div class="ta-wrap">
+      <textarea id="req" placeholder="Ví dụ: Tạo trục Ø32 dài 120 mm, có then bằng rộng 8 mm, sâu 3 mm, dài 40 mm; thêm lỗ ngang Ø6 mm"></textarea>
+      <button type="button" class="mic" id="mic" title="Nói thay vì gõ">🎤</button>
+    </div>
+    <div class="micst" id="micst"></div>
+    <div class="chips">
+      <span class="ex">Trục tròn dài 50mm Ø12mm</span>
+      <span class="ex">Tấm thép 100x60x5mm, 4 lỗ Ø6mm, bo tròn R3mm</span>
+      <span class="ex">Mặt bích ngoài 60mm, 6 lỗ Ø10mm trên vòng tròn 45mm</span>
+      <span class="ex">Trục 3 bậc: Ø50 dài 20, Ø40 dài 10, Ø10 dài 10</span>
+    </div>
+    <div class="row">
+      <button class="primary" id="genBtn">Tạo mô hình</button>
+      <span class="badge" id="badge">chờ yêu cầu</span>
+      <b id="badgeText"></b>
+    </div>
+    <h2>Tóm tắt thiết kế đã hiểu</h2>
+    <div class="summary" id="summary">Chưa có yêu cầu nào. Nhập mô tả rồi bấm “Tạo mô hình”.</div>
+  </section>
 
-<div class="progress-wrap" id="quy-trinh">
-  <div class="progress-label">QUY TRÌNH XỬ LÝ</div>
-  <div class="progress-steps">
-    <div class="pstep" id="step-1">
-      <div class="pdot"></div>
-      <div><div class="ptitle">Nhập mô tả</div><div class="pdesc">Gõ hoặc nói yêu cầu bằng ngôn ngữ tự nhiên</div></div>
-    </div>
-    <div class="pstep" id="step-2">
-      <div class="pdot"></div>
-      <div><div class="ptitle">AI phân tích &amp; dựng hình</div><div class="pdesc">Sinh spec, code CadQuery, kiểm tra kích thước</div></div>
-    </div>
-    <div class="pstep" id="step-3">
-      <div class="pdot"></div>
-      <div><div class="ptitle">Xuất STEP</div><div class="pdesc">Tải file mô hình 3D về máy</div></div>
-    </div>
-  </div>
-</div>
+  <section class="card tree">
+    <h2>Cây feature</h2>
+    <div class="hint">Click vào feature để xem chi tiết tham số.</div>
+    <div class="tree-scroll"><div id="featList"></div></div>
+  </section>
 
-<div class="workspace">
-  <div class="panel">
-    <div class="panel-label">MÔ TẢ CHI TIẾT</div>
-    <h2>Nhập yêu cầu thiết kế</h2>
-    <div class="textarea-wrap">
-      <textarea id="req" placeholder="Ví dụ: vẽ cho tôi 1 cái trục tròn dài 50mm đường kính 12mm"></textarea>
-      <button type="button" class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Nói thay vì gõ">🎤</button>
+  <section class="card view3d">
+    <h2>Xem trước 3D</h2>
+    <div class="toolbar">
+      <button class="tb on" id="tRot" title="Xoay">⟳</button>
+      <button class="tb" id="tPan" title="Di chuyển">✥</button>
+      <span class="tb-sep"></span>
+      <button class="tb" id="tFit" title="Vừa khung">⛶</button>
+      <button class="tb" id="tReset" title="Đặt lại góc nhìn">↺</button>
+      <span class="tb-sep"></span>
+      <button class="tb" id="tWire" title="Khung dây">▢</button>
+      <button class="tb" id="tIso" title="Góc isometric">⬡</button>
+      <span class="tb-sep"></span>
+      <button class="tb on" id="tAxes" title="Trục tọa độ">∟</button>
+      <button class="tb" id="tGrid" title="Lưới">▦</button>
     </div>
-    <div class="mic-status" id="mic-status"></div>
-    <div class="examples" id="vi-du">
-      <div class="examples-label">Thử nhanh với ví dụ</div>
-      <span class="chip" onclick="fillExample(this)">Trục tròn dài 50mm Ø12mm</span>
-      <span class="chip" onclick="fillExample(this)">Tấm thép 100x60x5mm, 4 lỗ Ø6mm, bo tròn R3mm</span>
-      <span class="chip" onclick="fillExample(this)">Mặt bích ngoài 60mm, 6 lỗ Ø10mm trên vòng tròn 45mm</span>
-      <span class="chip" onclick="fillExample(this)">Trục 3 bậc: Ø50 dài 20, Ø40 dài 10, Ø10 dài 10</span>
+    <div id="viewport"><div id="overlay">Hình 3D sẽ hiện ở đây sau khi tạo mô hình.</div></div>
+    <div class="legend">
+      <span><i style="background:#8d99ae"></i>Chi tiết (STL từ file STEP)</span>
+      <span style="margin-left:auto">Trục: <span style="color:#e8a23a">X</span> <span style="color:#b5e61d">Y</span> <span style="color:#3b82f6">Z</span></span>
     </div>
-    <button id="btn" class="generate-btn" onclick="generate()">Tạo bản vẽ</button>
-    <div class="hint">Tối đa 30 lần tạo mỗi giờ cho mỗi người dùng</div>
-  </div>
+  </section>
 
-  <div class="panel">
-    <div class="panel-label">TRẠNG THÁI</div>
-    <h2>Xem trước</h2>
-    <div class="preview-box" id="preview-box">
-      <svg class="preview-icon" id="preview-icon" viewBox="0 0 64 64" fill="none">
-        <path d="M32 6 L58 20 L58 44 L32 58 L6 44 L6 20 Z" stroke="#2dd4bf" stroke-width="2" fill="rgba(45,212,191,0.08)"/>
-        <path d="M32 6 L32 32 M32 32 L58 20 M32 32 L6 20 M32 32 L32 58" stroke="#2dd4bf" stroke-width="1.5" opacity="0.5"/>
-      </svg>
+  <section class="card status">
+    <h2>Trạng thái &amp; kiểm chứng</h2>
+    <div class="vstat">
+      <span class="badge" id="vBadge">chờ</span>
+      <span id="vText">Chưa có kết quả</span>
+      <span>Feature: <b id="nFeat">0</b></span>
+      <span>Cảnh báo: <b class="w">0</b></span>
+      <span>Lỗi: <b class="e" id="nErr">0</b></span>
+      <span class="sp"></span>
+      <button class="ghost" id="btnReport">Xem báo cáo kiểm chứng</button>
+      <button class="ghost" id="btnSpec">Spec kỹ thuật</button>
     </div>
-    <div class="preview-caption" id="preview-caption">Các bước xử lý sẽ hiện ở đây sau khi bạn bấm Tạo bản vẽ</div>
-  </div>
+    <div class="coverage" id="coverage">Chưa có dữ liệu.</div>
+    <div id="errArea"></div>
+  </section>
+</main>
 
-  <div class="panel">
-    <div class="panel-label">KẾT QUẢ</div>
-    <h2>Thông số bản vẽ</h2>
-    <div class="spec-row"><span class="k">Trạng thái</span><span class="status-badge idle" id="status-badge">Chờ yêu cầu</span></div>
-    <div class="spec-row"><span class="k">Định dạng xuất</span><span class="v mono">STEP (.step)</span></div>
-    <div class="spec-row"><span class="k">Đơn vị</span><span class="v mono">mm</span></div>
-    <div class="spec-row"><span class="k">Dung sai</span><span class="v mono">±0.1 mm</span></div>
-    <div class="spec-row"><span class="k">Số vòng lặp AI</span><span class="v empty mono" id="v-iter">—</span></div>
-    <div class="spec-row"><span class="k">Sai lệch kích thước</span><span class="v empty mono" id="v-err">—</span></div>
-    <div id="result-area"></div>
-  </div>
-</div>
-
-<div class="detail-wrap" id="detail-wrap" style="display:none">
-  <div class="panel">
-    <div class="panel-label">PIPELINE</div>
-    <h2>Chi tiết từng bước: đầu vào và đầu ra</h2>
-    <div id="detail-list"></div>
-  </div>
-</div>
-
-<div class="capability-wrap" id="nang-luc">
-  <div class="panel">
-    <div class="panel-label">NĂNG LỰC HỆ THỐNG</div>
-    <h2>Hiện vẽ được những gì</h2>
-    <div class="cap-grid">
-      <div class="cap-card"><div class="cap-name">Tấm phẳng (plate)</div><div class="cap-desc">Lỗ, bo góc, vát cạnh, túi, gờ nổi, rãnh</div></div>
-      <div class="cap-card"><div class="cap-name">Giá đỡ (bracket)</div><div class="cap-desc">Khối hộp hoặc dạng chữ L</div></div>
-      <div class="cap-card"><div class="cap-name">Mặt bích (flange)</div><div class="cap-desc">Vòng lỗ bu-lông quanh tâm</div></div>
-      <div class="cap-card"><div class="cap-name">Trục tròn (shaft)</div><div class="cap-desc">Rãnh then, lỗ ngang xuyên trục</div></div>
-      <div class="cap-card"><div class="cap-name">Trục bậc (stepped_shaft)</div><div class="cap-desc">Nhiều đoạn đường kính khác nhau, đối xứng tâm</div></div>
-      <div class="cap-card"><div class="cap-name">Hộp rỗng (housing)</div><div class="cap-desc">Thành mỏng, đáy kín</div></div>
-      <div class="cap-card"><div class="cap-name">Gối đỡ trục (pillow_block)</div><div class="cap-desc">Vát 2 bên, rãnh cong đặt trục, 2 tai bu-lông</div></div>
-    </div>
-    <div class="cap-not">
-      <b>Chưa vẽ được</b> — hệ thống sẽ báo lỗi thay vì đoán bừa: ren vít, bánh răng, biên dạng tự do phức tạp, lắp ghép nhiều chi tiết, trục/khối bậc không đối xứng nhiều tầng, hộp có nhiều rãnh xẻ dọc phức tạp.
-    </div>
-  </div>
+<div class="bar">
+  <label>EDIT</label>
+  <input id="editInput" placeholder="VD: tăng đường kính đoạn giữa lên 42mm">
+  <button class="teal" id="applyBtn" disabled>Áp dụng</button>
+  <label style="margin-left:10px">TẢI VỀ</label>
+  <button class="dl main" data-fmt="step" disabled>⬇ STEP</button>
+  <button class="dl" data-fmt="stl" disabled>⬇ STL</button>
+  <button class="dl" data-fmt="spec" disabled>⬇ Spec</button>
+  <button class="dl" data-fmt="report" disabled>⬇ Report</button>
+  <button class="dl" data-fmt="dxf" disabled>⬇ DXF</button>
+  <button class="dl" data-fmt="manifest" disabled>⬇ Manifest</button>
 </div>
 
 <footer>
-  <span>CAD AI </span>
-  <span>Pipeline: NL → Spec → CadQuery → STEP</span>
+  <span>AIM-Lab · Đại học Phenikaa · Khoa Cơ khí - Cơ điện tử</span>
+  <span>Sinh viên: <b>Nguyễn Danh Nam</b> · <b>Vũ Văn Duy</b> · <b>Nguyễn Hiếu Minh</b></span>
+  <span>Hướng dẫn: <b>TS. Nguyễn Văn Hải</b></span>
 </footer>
 
+<dialog id="dlg">
+  <div class="dhead"><span id="dlgTitle"></span><button class="ghost" id="dlgClose">Đóng</button></div>
+  <div class="dbody" id="dlgBody"></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
 <script>
-const PL_STEPS = [
-  'Ngôn ngữ tự nhiên',
-  'AI sinh JSON spec',
-  'Kiểm tra cấu trúc spec',
-  'Sinh code CadQuery',
-  'Dựng hình & kiểm tra kích thước',
-  'Xuất file STEP'
-];
-// stage mà server báo lỗi -> chỉ số bước bị lỗi
-const FAIL_INDEX = { nl_to_spec: 1, spec_validation: 2, codegen: 3, geometry_validation: 4 };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PART_VI = {
+  plate:'Tấm phẳng', bracket:'Giá đỡ', flange:'Mặt bích', shaft:'Trục tròn', stepped_shaft:'Trục bậc',
+  housing:'Hộp rỗng', pillow_block:'Gối đỡ trục', bolt:'Bu-lông', nut:'Đai ốc', washer:'Vòng đệm', gear:'Bánh răng'
+};
+const PALETTE = ['#e8a23a','#3ecf5a','#5aa9ff','#c08bff','#ff7a9c','#38d9c0'];
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let last = null;      // phản hồi /generate gần nhất (thành công)
+let fileId = null;
+let activeFeat = null;
+
+/* ================= Theme ================= */
+$('themeBtn').onclick = () => {
+  const r = document.documentElement, light = r.dataset.theme === 'dark';
+  r.dataset.theme = light ? 'light' : 'dark';
+  $('themeBtn').textContent = light ? '☀' : '☾';
+  scene.background = new THREE.Color(light ? 0xe4e6ef : 0x0a0d17);
+};
+
+/* ================= 3D ================= */
+const vp = $('viewport');
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0d17);
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(devicePixelRatio);
+vp.insertBefore(renderer.domElement, $('overlay'));
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirL = new THREE.DirectionalLight(0xffffff, 0.9); dirL.position.set(200, 300, 250); scene.add(dirL);
+const grid = new THREE.GridHelper(200, 20, 0x335577, 0x223344); grid.visible = false; scene.add(grid);
+const axes = new THREE.Group(); scene.add(axes);
+const holder = new THREE.Group(); holder.rotation.x = -Math.PI / 2; scene.add(holder); // CAD Z-up -> three Y-up
+let mesh = null, wire = false, radius = 100;
+
+function line(a, b, c){
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a), new THREE.Vector3(...b)]);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({color:c}));
 }
+function setOverlay(html){ const o = $('overlay'); o.innerHTML = html; o.style.display = html ? 'grid' : 'none'; }
 
-function fillExample(el) { document.getElementById('req').value = el.textContent; }
-
-function setStep(n) {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('step-' + i);
-    el.classList.remove('active', 'done');
-    if (i < n) el.classList.add('done');
-    if (i === n) el.classList.add('active');
-  }
+function loadStl(url){
+  setOverlay('<span><span class="spin"></span>Đang dựng lưới 3D…</span>');
+  new THREE.STLLoader().load(url, geo => {
+    if (mesh) { holder.remove(mesh); mesh.geometry.dispose(); }
+    geo.computeVertexNormals();
+    geo.computeBoundingBox();
+    const c = new THREE.Vector3(); geo.boundingBox.getCenter(c);
+    geo.translate(-c.x, -c.y, -c.z);
+    const size = new THREE.Vector3(); geo.boundingBox.getSize(size);
+    radius = Math.max(size.x, size.y, size.z) || 100;
+    mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x8d99ae, metalness:.25, roughness:.5, wireframe:wire}));
+    holder.add(mesh);
+    axes.clear();
+    axes.add(line([-radius*.8,0,0],[radius*.8,0,0],0xe8a23a));
+    axes.add(line([0,0,-radius*.8],[0,0,radius*.8],0xb5e61d));
+    axes.add(line([0,-radius*.8,0],[0,radius*.8,0],0x3b82f6));
+    grid.position.y = -size.z / 2; grid.scale.setScalar(Math.max(.2, radius / 100));
+    fit(); setOverlay('');
+  }, undefined, () => setOverlay('Không tải được lưới 3D (STL). Vẫn có thể tải file STEP.'));
 }
-
-function setPreview(state) {
-  const box = document.getElementById('preview-box');
-  box.className = 'preview-box ' + state;
-  const icon = document.getElementById('preview-icon');
-  if (icon) {
-    const colors = { idle: '#2dd4bf', working: '#2dd4bf', done: '#4ade80', error: '#f87171' };
-    const c = colors[state] || '#2dd4bf';
-    icon.querySelectorAll('path').forEach(p => p.setAttribute('stroke', c));
-  }
+function fit(){
+  camera.position.set(radius*1.5, radius*1.0, radius*1.8);
+  controls.target.set(0,0,0); controls.update();
 }
-
-function setBadge(state, text) {
-  const b = document.getElementById('status-badge');
-  b.className = 'status-badge ' + state;
-  b.textContent = text;
+function resize(){
+  const w = vp.clientWidth, h = vp.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
+new ResizeObserver(resize).observe(vp);
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
 
-// trạng thái từng bước: done | error | pending
-function stepStates(p, success) {
-  const states = PL_STEPS.map(() => 'pending');
-  if (success) return states.map(() => 'done');
-  const fi = FAIL_INDEX[p && p.failed_at];
-  const failAt = fi === undefined ? 1 : fi;
-  for (let i = 0; i < PL_STEPS.length; i++) {
-    if (i < failAt) states[i] = 'done';
-    else if (i === failAt) states[i] = 'error';
-  }
-  return states;
+const setOn = (id, v) => $(id).classList.toggle('on', v);
+$('tRot').onclick = () => { controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE; setOn('tRot', true); setOn('tPan', false); };
+$('tPan').onclick = () => { controls.mouseButtons.LEFT = THREE.MOUSE.PAN; setOn('tPan', true); setOn('tRot', false); };
+$('tFit').onclick = fit; $('tReset').onclick = fit;
+$('tWire').onclick = () => { wire = !wire; setOn('tWire', wire); if (mesh) mesh.material.wireframe = wire; };
+$('tIso').onclick = () => { camera.position.set(radius*1.6, radius*1.6, radius*1.6); controls.target.set(0,0,0); controls.update(); };
+$('tAxes').onclick = () => { axes.visible = !axes.visible; setOn('tAxes', axes.visible); };
+$('tGrid').onclick = () => { grid.visible = !grid.visible; setOn('tGrid', grid.visible); };
+
+/* ================= Hiển thị kết quả ================= */
+function setBadge(cls, text, long){
+  const b = $('badge'); b.className = 'badge ' + cls; b.textContent = text;
+  $('badgeText').textContent = long || '';
+  const v = $('vBadge'); v.className = 'badge ' + cls; v.textContent = text;
+  $('vText').textContent = long || '';
+  $('chipState').textContent = 'trạng thái: ' + text;
 }
+function paramText(p){ return Object.entries(p || {}).map(([k,v]) => k + '=' + JSON.stringify(v)).join(', '); }
 
-function renderPreviewList(states, runningIdx) {
-  const box = document.getElementById('preview-box');
-  let html = '<ul class="pl-list">';
-  PL_STEPS.forEach((name, i) => {
-    let cls = states ? states[i] : (i < runningIdx ? 'done' : (i === runningIdx ? 'running' : 'pending'));
-    const mark = cls === 'done' ? '✓' : (cls === 'error' ? '!' : '');
-    html += '<li class="pl-item ' + cls + '"><span class="pl-mark">' + mark + '</span>' + esc(name) + '</li>';
+function renderSummary(p){
+  const r = p && p.requirements; if (!r) return;
+  const dims = Object.entries(r.base_dimensions || {}).map(([k,v]) => '- ' + k + ': ' + v + ' mm').join('\n');
+  const feats = (r.features || []).map((f,i) => (i+1) + '. ' + f.type + (paramText(f.params) ? ' (' + paramText(f.params) + ')' : '')).join('\n');
+  $('summary').textContent =
+`TÓM TẮT THIẾT KẾ ĐÃ HIỂU
+Loại chi tiết: ${PART_VI[r.part_type] || r.part_type}
+
+Kích thước cơ bản:
+${dims || '- (không có)'}
+
+Các feature:
+${feats || '- (không có)'}
+
+Vật liệu: ${r.material || 'không ghi'}
+Dung sai: ${r.tolerance ?? 'không ghi'}`;
+}
+function renderTree(p){
+  const r = p && p.requirements; if (!r) { $('featList').innerHTML = ''; $('nFeat').textContent = 0; return; }
+  const items = [{name: PART_VI[r.part_type] || r.part_type, tag:'base', color:'#8d99ae', child:false,
+                  det: r.part_type + ' · ' + paramText(r.base_dimensions)}];
+  (r.features || []).forEach((f,i) => items.push({name:f.type, tag:'f'+i, color:PALETTE[i % PALETTE.length], child:true, det:paramText(f.params)}));
+  $('featList').innerHTML = items.map((f,i) => `
+    <div class="feat ${f.child?'child':''} ${activeFeat===i?'active':''}" data-i="${i}">
+      <i class="sq" style="background:${f.color}"></i>
+      <div class="meta"><div class="name">${esc(f.name)}<em>${f.tag}</em></div><div class="det">${esc(f.det)}</div></div>
+      <span class="ok">ok</span>
+    </div>`).join('');
+  document.querySelectorAll('.feat').forEach(el => el.onclick = () => {
+    activeFeat = activeFeat === +el.dataset.i ? null : +el.dataset.i; renderTree(p);
   });
-  box.innerHTML = html + '</ul>';
+  $('nFeat').textContent = (r.features || []).length;
+}
+function renderStatus(data){
+  const p = data.pipeline, v = p && p.validation;
+  const nErr = v && v.errors ? v.errors.length : 0;
+  $('nErr').textContent = nErr;
+  const m = v && v.metrics ? Object.values(v.metrics).filter(x => typeof x === 'number') : [];
+  const maxErr = m.length ? Math.max(...m).toFixed(3) + ' mm' : '—';
+  $('coverage').innerHTML = p
+    ? `<b>Kiểm chứng:</b> ${v.is_valid ? 'hợp lệ' : 'chưa hợp lệ'} · vòng lặp AI: ${esc(p.n_iterations)} · thời gian: ${esc(p.elapsed_sec)} s · sai lệch kích thước lớn nhất: ${esc(maxErr)} · lỗi: ${nErr}`
+    : 'Chưa có dữ liệu.';
+  $('errArea').innerHTML = data.success ? '' : '<div class="errbox">' + esc(data.message || 'Không rõ lỗi') + '</div>';
+}
+function enableDownloads(on){
+  document.querySelectorAll('[data-fmt]').forEach(b => b.disabled = !on);
+  $('applyBtn').disabled = !on;
 }
 
-function kv(rows) {
-  return '<table class="req">' + rows.map(r =>
-    '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>';
-}
-
-function featureText(f) {
-  const params = Object.entries(f.params || {}).map(([k, v]) => k + '=' + JSON.stringify(v)).join(', ');
-  return esc(f.type) + (params ? ' (' + esc(params) + ')' : '');
-}
-
-function renderDetail(data) {
-  const p = data.pipeline;
-  const wrap = document.getElementById('detail-wrap');
-  if (!p) { wrap.style.display = 'none'; return; }
-  const st = stepStates(p, data.success);
-  const dims = (p.requirements && p.requirements.base_dimensions) || {};
-  const feats = (p.requirements && p.requirements.features) || [];
-
-  const bodies = [
-    // 0
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Người dùng nhập (gõ hoặc nói)</div>' +
-    '<div class="io-label">ĐẦU RA</div><pre class="code">' + esc(p.nl_request) + '</pre>',
-    // 1
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Câu tiếng Việt ở bước 1</div>' +
-    '<div class="io-label">ĐẦU RA: YÊU CẦU KỸ THUẬT</div>' +
-    (p.requirements ? kv([
-      ['Loại chi tiết', esc(p.requirements.part_type)],
-      ['Kích thước cơ bản', '<code>' + esc(JSON.stringify(dims)) + '</code>'],
-      ['Các feature', feats.length ? feats.map(featureText).join('<br>') : 'Không có'],
-      ['Vật liệu', esc(p.requirements.material || 'Không ghi')],
-      ['Dung sai', esc(p.requirements.tolerance)]
-    ]) : '<div class="io-note">Chưa có (AI không tạo được spec)</div>') +
-    '<div class="io-label">ĐẦU RA: JSON SPEC</div><pre class="code">' +
-    esc(p.spec ? JSON.stringify(p.spec, null, 2) : 'Không có') + '</pre>',
-    // 2
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">JSON spec</div>' +
-    '<div class="io-label">ĐẦU RA</div><div class="io-note">Danh sách lỗi cấu trúc (rỗng nếu hợp lệ). Nếu có lỗi, AI được gọi để sửa spec rồi lặp lại.</div>',
-    // 3
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">JSON spec hợp lệ</div>' +
-    '<div class="io-label">ĐẦU RA: CODE CADQUERY</div><pre class="code">' +
-    esc(p.code || 'Chưa sinh được code') + '</pre>',
-    // 4
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Code CadQuery + spec</div>' +
-    '<div class="io-label">ĐẦU RA: KẾT QUẢ KIỂM TRA</div>' +
-    kv([
-      ['Hợp lệ', p.validation.is_valid ? 'Có' : 'Không'],
-      ['Sai lệch kích thước', '<code>' + esc(JSON.stringify(p.validation.metrics || {})) + '</code>'],
-      ['Lỗi', (p.validation.errors && p.validation.errors.length) ? p.validation.errors.map(esc).join('<br>') : 'Không có'],
-      ['Số vòng lặp', esc(p.n_iterations)],
-      ['Thời gian', esc(p.elapsed_sec) + ' s']
-    ]),
-    // 5
-    '<div class="io-label">ĐẦU VÀO</div><div class="io-note">Solid 3D đã kiểm tra</div>' +
-    '<div class="io-label">ĐẦU RA</div><div class="io-note">' +
-    (data.success ? 'File .step, tải ở khung Kết quả.' : 'Chưa có file.') + '</div>'
-  ];
-
-  const tagText = { done: 'Xong', error: 'Lỗi', pending: 'Chưa chạy' };
-  let html = '';
-  PL_STEPS.forEach((name, i) => {
-    const openAttr = (st[i] === 'error' || i === 1 || i === 3) ? ' open' : '';
-    html += '<details class="dstep ' + st[i] + '"' + openAttr + '>' +
-      '<summary><span>' + (i + 1) + '. ' + esc(name) + '</span><span class="tag">' + tagText[st[i]] + '</span></summary>' +
-      '<div class="dbody">' + bodies[i] + '</div></details>';
-  });
-  document.getElementById('detail-list').innerHTML = html;
-  wrap.style.display = 'block';
-}
-
-async function generate() {
-  const req = document.getElementById('req').value.trim();
-  const btn = document.getElementById('btn');
-  const resultArea = document.getElementById('result-area');
+/* ================= Gọi server ================= */
+async function generate(text){
+  const req = (text ?? $('req').value).trim();
   if (!req) { alert('Vui lòng nhập mô tả'); return; }
-
-  btn.disabled = true;
-  setStep(2);
-  setPreview('working');
-  setBadge('working', 'Đang xử lý');
-  renderPreviewList(null, 1);
-  document.getElementById('preview-caption').textContent = 'Đang xử lý...';
-  document.getElementById('detail-wrap').style.display = 'none';
-  resultArea.innerHTML = '<div class="info-box"><span class="spinner"></span>Đang phân tích yêu cầu và dựng mô hình 3D (10–90 giây)...</div>';
-  document.getElementById('v-iter').textContent = '—';
-  document.getElementById('v-err').textContent = '—';
-
+  $('req').value = req;
+  const btn = $('genBtn'); btn.disabled = true; btn.textContent = 'Đang tạo…';
+  enableDownloads(false); $('errArea').innerHTML = '';
+  setBadge('work', 'đang xử lý', 'AI đang phân tích và dựng hình (10–90 giây)…');
+  setOverlay('<span><span class="spin"></span>Đang phân tích yêu cầu và dựng mô hình…</span>');
   try {
-    const res = await fetch('/generate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({request: req})
-    });
+    const res = await fetch('/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({request: req})});
     const data = await res.json();
     const p = data.pipeline;
-
-    if (p) {
-      renderPreviewList(stepStates(p, data.success));
-      document.getElementById('preview-caption').textContent =
-        'Pipeline: ' + p.n_iterations + ' vòng lặp, ' + p.elapsed_sec + ' s';
-      document.getElementById('v-iter').textContent = p.n_iterations;
-      renderDetail(data);
-    }
-
+    if (p) { renderSummary(p); renderTree(p); }
+    renderStatus(data);
     if (data.success) {
-      setStep(3);
-      setPreview('done');
-      setBadge('done', 'Hoàn tất');
-      const nums = data.metrics ? Object.values(data.metrics).filter(v => typeof v === 'number') : [];
-      document.getElementById('v-err').textContent = (nums.length ? Math.max(...nums) : 0).toFixed(3) + ' mm';
-      resultArea.innerHTML = '<a class="download-btn" href="' + esc(data.download_url) + '">Tải file STEP</a>' +
-        (data.download_dxf_url ? '<a class="download-btn" href="' + esc(data.download_dxf_url) + '">Tải bản vẽ 2D (DXF)</a>' : '');
+      last = data; fileId = (data.download_url.match(/download\/([0-9a-f]{8})/) || [])[1];
+      setBadge('ok', 'verified', 'Đã kiểm chứng hình học + yêu cầu');
+      enableDownloads(true);
+      loadStl(data.download_stl_url || ('/download_stl/' + fileId));
     } else {
-      setStep(1);
-      setPreview('error');
-      setBadge('error', 'Không thành công');
-      resultArea.innerHTML = '<div class="error-box">' + esc(data.message) + '</div>';
+      setBadge('err', 'lỗi', 'Không tạo được mô hình');
+      setOverlay('Không tạo được mô hình. Xem thông báo lỗi ở khung bên dưới.');
     }
   } catch (e) {
-    setStep(1);
-    setPreview('error');
-    setBadge('error', 'Lỗi kết nối');
-    resultArea.innerHTML = '<div class="error-box">Không thể kết nối tới máy chủ: ' + esc(e) + '</div>';
+    setBadge('err', 'lỗi kết nối', '');
+    $('errArea').innerHTML = '<div class="errbox">Không thể kết nối tới máy chủ: ' + esc(e) + '</div>';
+    setOverlay('Lỗi kết nối.');
   }
-  btn.disabled = false;
+  btn.disabled = false; btn.textContent = 'Tạo mô hình';
 }
+$('genBtn').onclick = () => generate();
+document.querySelectorAll('.ex').forEach(el => el.onclick = () => { $('req').value = el.textContent; });
 
-/* ---- Mic: nói thay vì gõ ---- */
-let recognition = null;
-let listening = false;
+/* EDIT: server chưa có API sửa trực tiếp, nên ghép yêu cầu sửa vào mô tả rồi tạo lại */
+$('applyBtn').onclick = () => {
+  const e = $('editInput').value.trim(); if (!e) return;
+  generate($('req').value.trim() + '. Chỉnh sửa: ' + e);
+  $('editInput').value = '';
+};
 
-function initMic() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const micBtn = document.getElementById('mic-btn');
-  const micStatus = document.getElementById('mic-status');
-  if (!SR) {
-    micBtn.disabled = true;
-    micBtn.title = 'Trình duyệt chưa hỗ trợ (dùng Chrome hoặc Edge)';
-    micStatus.textContent = 'Trình duyệt này chưa hỗ trợ nhận diện giọng nói. Dùng Chrome hoặc Edge.';
-    return;
-  }
-  recognition = new SR();
-  recognition.lang = 'vi-VN';
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onstart = () => { micStatus.textContent = 'Đang nghe... nói yêu cầu của bạn'; };
-
-  recognition.onresult = e => {
-    const text = e.results[0][0].transcript;
-    const box = document.getElementById('req');
-    box.value = (box.value.trim() ? box.value.trim() + ' ' : '') + text;
-    micStatus.textContent = 'Đã nhận: "' + text + '"';
-  };
-
-  recognition.onerror = e => {
-    listening = false;
-    micBtn.classList.remove('listening');
-    const msgs = {
-      'not-allowed': 'Chưa được cấp quyền dùng micro.',
-      'no-speech': 'Không nghe thấy gì, thử lại nhé.',
-      'network': 'Lỗi mạng khi nhận diện giọng nói.'
-    };
-    micStatus.textContent = msgs[e.error] || ('Lỗi micro: ' + e.error);
-  };
-
-  recognition.onend = () => {
-    listening = false;
-    micBtn.classList.remove('listening');
-  };
+/* ================= Tải về + hộp thoại ================= */
+function saveBlob(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: type || 'application/json'})); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-
-function toggleMic() {
-  if (!recognition) return;
-  const micBtn = document.getElementById('mic-btn');
-  const micStatus = document.getElementById('mic-status');
-  if (listening) {
-    recognition.stop();
-  } else {
-    try {
-      recognition.start();
-      listening = true;
-      micBtn.classList.add('listening');
-    } catch (e) {
-      micStatus.textContent = 'Không thể bật micro: ' + e;
-    }
-  }
+function reportText(){
+  const p = last.pipeline;
+  return $('summary').textContent + '\n\n' + $('coverage').textContent +
+    '\n\nLỗi: ' + ((p.validation.errors || []).join('; ') || 'không có') + '\n\nCode CadQuery:\n' + (p.code || '');
 }
+document.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => {
+  if (!last || !fileId) return;
+  const f = b.dataset.fmt, p = last.pipeline;
+  if (f === 'step') location.href = last.download_url;
+  else if (f === 'stl') location.href = last.download_stl_url || ('/download_stl/' + fileId);
+  else if (f === 'dxf') location.href = last.download_dxf_url;
+  else if (f === 'spec') saveBlob('spec.json', JSON.stringify(p.spec, null, 2));
+  else if (f === 'report') saveBlob('report.txt', reportText(), 'text/plain');
+  else if (f === 'manifest') saveBlob('manifest.json', JSON.stringify({file_id:fileId, units:'mm', part_type:p.requirements && p.requirements.part_type,
+    iterations:p.n_iterations, elapsed_sec:p.elapsed_sec, files:{step:last.download_url, stl:last.download_stl_url, dxf:last.download_dxf_url}}, null, 2));
+});
+function openDlg(title, html){ $('dlgTitle').textContent = title; $('dlgBody').innerHTML = html; $('dlg').showModal(); }
+$('dlgClose').onclick = () => $('dlg').close();
+$('btnReport').onclick = () => {
+  if (!last) return alert('Chưa có kết quả để xem báo cáo.');
+  const p = last.pipeline, v = p.validation;
+  openDlg('Báo cáo kiểm chứng',
+    '<h3>Tổng quan</h3><pre>' + esc('Hợp lệ: ' + (v.is_valid ? 'có' : 'không') + '\nVòng lặp AI: ' + p.n_iterations + '\nThời gian: ' + p.elapsed_sec + ' s\nSai lệch kích thước: ' + JSON.stringify(v.metrics || {})) + '</pre>' +
+    '<h3>Lỗi</h3><pre>' + esc((v.errors || []).join('\n') || 'Không có') + '</pre>' +
+    '<h3>Các vòng lặp</h3><pre>' + esc(JSON.stringify(p.iterations, null, 2)) + '</pre>');
+};
+$('btnSpec').onclick = () => {
+  if (!last) return alert('Chưa có spec để xem.');
+  const p = last.pipeline;
+  openDlg('Spec kỹ thuật',
+    '<h3>JSON spec</h3><pre>' + esc(JSON.stringify(p.spec, null, 2)) + '</pre>' +
+    '<h3>Code CadQuery</h3><pre>' + esc(p.code || 'Chưa có') + '</pre>');
+};
 
-initMic();
-setStep(1);
+/* ================= Mic ================= */
+(function initMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = $('mic'), st = $('micst');
+  if (!SR) { mic.disabled = true; st.textContent = 'Trình duyệt chưa hỗ trợ nhận diện giọng nói. Dùng Chrome hoặc Edge.'; return; }
+  const rec = new SR(); rec.lang = 'vi-VN'; rec.continuous = false; rec.interimResults = false;
+  let on = false;
+  rec.onstart = () => st.textContent = 'Đang nghe… nói yêu cầu của bạn';
+  rec.onresult = e => { const t = e.results[0][0].transcript, box = $('req'); box.value = (box.value.trim() ? box.value.trim() + ' ' : '') + t; st.textContent = 'Đã nhận: "' + t + '"'; };
+  rec.onerror = e => { on = false; mic.classList.remove('listening');
+    st.textContent = ({'not-allowed':'Chưa được cấp quyền dùng micro.','no-speech':'Không nghe thấy gì, thử lại nhé.','network':'Lỗi mạng khi nhận diện giọng nói.'})[e.error] || ('Lỗi micro: ' + e.error); };
+  rec.onend = () => { on = false; mic.classList.remove('listening'); };
+  mic.onclick = () => { if (on) return rec.stop(); try { rec.start(); on = true; mic.classList.add('listening'); } catch (e) { st.textContent = 'Không thể bật micro: ' + e; } };
+})();
+
+resize(); setOverlay('Hình 3D sẽ hiện ở đây sau khi tạo mô hình.');
 </script>
 </body>
 </html>
