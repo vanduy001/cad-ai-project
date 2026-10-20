@@ -110,14 +110,14 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 <header>
   <span class="lab">AIM-LAB</span>
   <h1>AIM-CAD Generation</h1>
-  <span class="sub">typed spec → CAD → STEP</span>
+  <span class="sub">mô tả → thông số → CAD → STEP</span>
   <span class="sp"></span>
   <div class="right">
     <span class="chip btn" id="themeBtn" title="Đổi giao diện sáng/tối">☾</span>
     <span class="chip" id="chipState">trạng thái: chờ</span>
     <span class="chip">đơn vị: mm</span>
-    <span class="chip">parser: LLM (OpenRouter)</span>
-    <span class="chip">v2.1.0 · schema 2</span>
+    <span class="chip">bộ phân tích: AI (OpenRouter)</span>
+    <span class="chip">phiên bản 2.1.0 · lược đồ 2</span>
   </div>
 </header>
 
@@ -145,8 +145,8 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
   </section>
 
   <section class="card tree">
-    <h2>Cây feature</h2>
-    <div class="hint">Click vào feature để xem chi tiết tham số.</div>
+    <h2>Cây đặc trưng</h2>
+    <div class="hint">Bấm vào một đặc trưng để xem chi tiết tham số.</div>
     <div class="tree-scroll"><div id="featList"></div></div>
   </section>
 
@@ -167,7 +167,7 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
     </div>
     <div id="viewport"><div id="overlay">Hình 3D sẽ hiện ở đây sau khi tạo mô hình.</div></div>
     <div class="legend">
-      <span><i style="background:#8d99ae"></i>Chi tiết (STL từ file STEP)</span>
+      <span><i style="background:#8d99ae"></i>Chi tiết (lưới STL tạo từ tệp STEP)</span>
       <span style="margin-left:auto">Trục: <span style="color:#e8a23a">X</span> <span style="color:#b5e61d">Y</span> <span style="color:#3b82f6">Z</span></span>
     </div>
   </section>
@@ -177,12 +177,12 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
     <div class="vstat">
       <span class="badge" id="vBadge">chờ</span>
       <span id="vText">Chưa có kết quả</span>
-      <span>Feature: <b id="nFeat">0</b></span>
+      <span>Số đặc trưng: <b id="nFeat">0</b></span>
       <span>Cảnh báo: <b class="w">0</b></span>
       <span>Lỗi: <b class="e" id="nErr">0</b></span>
       <span class="sp"></span>
       <button class="ghost" id="btnReport">Xem báo cáo kiểm chứng</button>
-      <button class="ghost" id="btnSpec">Spec kỹ thuật</button>
+      <button class="ghost" id="btnSpec">Thông số kỹ thuật</button>
     </div>
     <div class="coverage" id="coverage">Chưa có dữ liệu.</div>
     <div id="errArea"></div>
@@ -190,16 +190,16 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 </main>
 
 <div class="bar">
-  <label>EDIT</label>
+  <label>SỬA</label>
   <input id="editInput" placeholder="VD: tăng đường kính đoạn giữa lên 42mm">
   <button class="teal" id="applyBtn" disabled>Áp dụng</button>
   <label style="margin-left:10px">TẢI VỀ</label>
   <button class="dl main" data-fmt="step" disabled>⬇ STEP</button>
   <button class="dl" data-fmt="stl" disabled>⬇ STL</button>
-  <button class="dl" data-fmt="spec" disabled>⬇ Spec</button>
-  <button class="dl" data-fmt="report" disabled>⬇ Report</button>
+  <button class="dl" data-fmt="spec" disabled>⬇ Thông số</button>
+  <button class="dl" data-fmt="report" disabled>⬇ Báo cáo</button>
   <button class="dl" data-fmt="dxf" disabled>⬇ DXF</button>
-  <button class="dl" data-fmt="manifest" disabled>⬇ Manifest</button>
+  <button class="dl" data-fmt="manifest" disabled>⬇ Danh mục</button>
 </div>
 
 <footer>
@@ -307,12 +307,88 @@ function setBadge(cls, text, long){
   $('vText').textContent = long || '';
   $('chipState').textContent = 'trạng thái: ' + text;
 }
-function paramText(p){ return Object.entries(p || {}).map(([k,v]) => k + '=' + JSON.stringify(v)).join(', '); }
+/* ---- Việt hóa tên feature, tham số và giá trị ---- */
+const FEAT_VI = {
+  hole:'Lỗ', radial_hole:'Lỗ ngang', keyway:'Rãnh then', parallel_key:'Then bằng', thread:'Ren',
+  undercut:'Rãnh thoát dao', chamfer:'Vát mép', fillet:'Bo tròn', pocket:'Túi', slot:'Rãnh',
+  counterbore:'Lỗ khoét bậc', countersink:'Lỗ khoét côn', boss:'Gờ nổi', rib:'Gân',
+  bolt_circle:'Vòng lỗ bu-lông', bolt_holes:'Lỗ bu-lông', groove:'Rãnh tròn', flat:'Mặt phẳng cắt',
+  center_hole:'Lỗ tâm', cut:'Cắt', step:'Bậc'
+};
+const KEY_VI = {
+  segments:'Các đoạn trục', diameter:'Đường kính', length:'Chiều dài', width:'Chiều rộng', depth:'Chiều sâu',
+  height:'Chiều cao', thickness:'Chiều dày', z:'Vị trí z', z_start:'Bắt đầu tại z', shaft_diameter:'Đường kính trục',
+  designation:'Ký hiệu', positions:'Vị trí', end:'Đầu trục', edges:'Áp dụng cho', distance:'Khoảng vát', radius:'Bán kính',
+  count:'Số lượng', pitch_circle_diameter:'Đường kính vòng chia', outer_diameter:'Đường kính ngoài',
+  inner_diameter:'Đường kính trong', hole_diameter:'Đường kính lỗ', bore_diameter:'Đường kính lỗ trục',
+  direction:'Hướng', side:'Phía', segment_id:'Đoạn trục', pitch:'Bước ren', angle:'Góc',
+  base_length:'Chiều dài đế', base_width:'Chiều rộng đế', base_height:'Chiều cao đế', x:'Vị trí x', y:'Vị trí y'
+};
+const VAL_VI = {
+  through:'xuyên suốt', start:'bên trái', end:'bên phải', both:'cả hai bên', all:'tất cả các cạnh',
+  flat:'đầu phẳng', round:'đầu tròn', blind:'lỗ cụt'
+};
+/* các khóa có đơn vị mm khi giá trị là số */
+const MM_KEYS = new Set(['diameter','length','width','depth','height','thickness','z','z_start','shaft_diameter','distance',
+  'radius','pitch_circle_diameter','outer_diameter','inner_diameter','hole_diameter','bore_diameter','pitch','x','y',
+  'base_length','base_width','base_height']);
+
+/* từ điển từng từ: dùng khi tên không có trong bảng trên, để vẫn ra tiếng Việt */
+const WORD_VI = {
+  diameter:'đường kính', length:'chiều dài', width:'chiều rộng', depth:'chiều sâu', height:'chiều cao',
+  thickness:'chiều dày', radius:'bán kính', count:'số lượng', angle:'góc', offset:'độ lệch', spacing:'khoảng cách',
+  start:'bắt đầu', end:'kết thúc', position:'vị trí', positions:'vị trí', number:'số', size:'kích thước',
+  outer:'ngoài', inner:'trong', hole:'lỗ', holes:'lỗ', shaft:'trục', key:'then', keyway:'rãnh then', thread:'ren',
+  chamfer:'vát mép', fillet:'bo tròn', undercut:'rãnh thoát dao', pocket:'túi', slot:'rãnh', circle:'vòng tròn',
+  pitch:'bước', bolt:'bu-lông', nut:'đai ốc', base:'đế', top:'trên', bottom:'dưới', left:'trái', right:'phải',
+  center:'tâm', centre:'tâm', face:'mặt', edge:'cạnh', edges:'cạnh', segment:'đoạn', segments:'đoạn', id:'mã',
+  type:'loại', style:'kiểu', side:'phía', direction:'hướng', open:'mở', through:'xuyên suốt', blind:'cụt',
+  material:'vật liệu', tolerance:'dung sai', distance:'khoảng cách', designation:'ký hiệu', host:'chi tiết chủ',
+  step:'bậc', total:'tổng', min:'nhỏ nhất', max:'lớn nhất', wall:'thành', bore:'lỗ trục', flange:'mặt bích',
+  rib:'gân', boss:'gờ nổi', groove:'rãnh tròn', cut:'cắt', plate:'tấm', bracket:'giá đỡ', housing:'hộp'
+};
+function humanize(s){
+  const t = String(s).split('_').map(w => WORD_VI[w] || w).join(' ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function featName(t){ return FEAT_VI[t] || humanize(t); }
+function keyName(k){ return KEY_VI[k] || humanize(k); }
+function fmtVal(v, k){
+  if (v === null || v === undefined) return 'không có';
+  if (typeof v === 'number') return v + (MM_KEYS.has(k) ? ' mm' : (k === 'angle' ? '°' : ''));
+  if (typeof v === 'string') return VAL_VI[v] || v;
+  if (typeof v === 'boolean') return v ? 'có' : 'không';
+  if (Array.isArray(v)) {
+    if (!v.length) return 'không có';
+    if (v.every(x => typeof x === 'number')) return '(' + v.join(', ') + ')';
+    return v.map(x => fmtVal(x, k)).join('; ');
+  }
+  if (typeof v === 'object') {
+    if ('diameter' in v && 'length' in v)                  // một đoạn trục
+      return 'Ø' + v.diameter + ' × dài ' + v.length + ' mm';
+    return Object.entries(v).map(([kk,vv]) => keyName(kk) + ' ' + fmtVal(vv, kk)).join(', ');
+  }
+  return String(v);
+}
+/* một dòng: "Đường kính 30 mm, Chiều sâu xuyên suốt" */
+function paramText(p){
+  return Object.entries(p || {}).filter(([,v]) => v !== null && v !== undefined && !(Array.isArray(v) && !v.length))
+    .map(([k,v]) => keyName(k) + ' ' + fmtVal(v, k)).join(', ');
+}
+/* nhiều dòng cho phần Kích thước cơ bản */
+function dimsText(d){
+  return Object.entries(d || {}).map(([k,v]) => {
+    if (k === 'segments' && Array.isArray(v))
+      return '- ' + keyName(k) + ' (từ trái sang phải):\n' + v.map((s,i) => '    ' + (i+1) + '. ' + fmtVal(s, k)).join('\n');
+    return '- ' + keyName(k) + ': ' + fmtVal(v, k);
+  }).join('\n');
+}
 
 function renderSummary(p){
   const r = p && p.requirements; if (!r) return;
-  const dims = Object.entries(r.base_dimensions || {}).map(([k,v]) => '- ' + k + ': ' + v + ' mm').join('\n');
-  const feats = (r.features || []).map((f,i) => (i+1) + '. ' + f.type + (paramText(f.params) ? ' (' + paramText(f.params) + ')' : '')).join('\n');
+  const dims = dimsText(r.base_dimensions);
+  const feats = (r.features || []).map((f,i) => (i+1) + '. ' + featName(f.type) + (paramText(f.params) ? ': ' + paramText(f.params) : '')).join('\n');
+  const tol = (typeof r.tolerance === 'number') ? '±' + r.tolerance + ' mm' : (r.tolerance ?? 'không ghi');
   $('summary').textContent =
 `TÓM TẮT THIẾT KẾ ĐÃ HIỂU
 Loại chi tiết: ${PART_VI[r.part_type] || r.part_type}
@@ -320,22 +396,22 @@ Loại chi tiết: ${PART_VI[r.part_type] || r.part_type}
 Kích thước cơ bản:
 ${dims || '- (không có)'}
 
-Các feature:
+Các đặc trưng:
 ${feats || '- (không có)'}
 
 Vật liệu: ${r.material || 'không ghi'}
-Dung sai: ${r.tolerance ?? 'không ghi'}`;
+Dung sai: ${tol}`;
 }
 function renderTree(p){
   const r = p && p.requirements; if (!r) { $('featList').innerHTML = ''; $('nFeat').textContent = 0; return; }
-  const items = [{name: PART_VI[r.part_type] || r.part_type, tag:'base', color:'#8d99ae', child:false,
-                  det: r.part_type + ' · ' + paramText(r.base_dimensions)}];
-  (r.features || []).forEach((f,i) => items.push({name:f.type, tag:'f'+i, color:PALETTE[i % PALETTE.length], child:true, det:paramText(f.params)}));
+  const items = [{name: PART_VI[r.part_type] || humanize(r.part_type), tag:'gốc', color:'#8d99ae', child:false,
+                  det: paramText(r.base_dimensions)}];
+  (r.features || []).forEach((f,i) => items.push({name:featName(f.type), tag:'#'+(i+1), color:PALETTE[i % PALETTE.length], child:true, det:paramText(f.params)}));
   $('featList').innerHTML = items.map((f,i) => `
     <div class="feat ${f.child?'child':''} ${activeFeat===i?'active':''}" data-i="${i}">
       <i class="sq" style="background:${f.color}"></i>
       <div class="meta"><div class="name">${esc(f.name)}<em>${f.tag}</em></div><div class="det">${esc(f.det)}</div></div>
-      <span class="ok">ok</span>
+      <span class="ok">đạt</span>
     </div>`).join('');
   document.querySelectorAll('.feat').forEach(el => el.onclick = () => {
     activeFeat = activeFeat === +el.dataset.i ? null : +el.dataset.i; renderTree(p);
@@ -375,7 +451,7 @@ async function generate(text){
     renderStatus(data);
     if (data.success) {
       last = data; fileId = (data.download_url.match(/download\/([0-9a-f]{8})/) || [])[1];
-      setBadge('ok', 'verified', 'Đã kiểm chứng hình học + yêu cầu');
+      setBadge('ok', 'đã kiểm chứng', 'Đã kiểm chứng hình học + yêu cầu');
       enableDownloads(true);
       loadStl(data.download_stl_url || ('/download_stl/' + fileId));
     } else {
@@ -408,7 +484,7 @@ function saveBlob(name, text, type){
 function reportText(){
   const p = last.pipeline;
   return $('summary').textContent + '\n\n' + $('coverage').textContent +
-    '\n\nLỗi: ' + ((p.validation.errors || []).join('; ') || 'không có') + '\n\nCode CadQuery:\n' + (p.code || '');
+    '\n\nLỗi: ' + ((p.validation.errors || []).join('; ') || 'không có') + '\n\nMã CadQuery:\n' + (p.code || '');
 }
 document.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => {
   if (!last || !fileId) return;
@@ -434,9 +510,9 @@ $('btnReport').onclick = () => {
 $('btnSpec').onclick = () => {
   if (!last) return alert('Chưa có spec để xem.');
   const p = last.pipeline;
-  openDlg('Spec kỹ thuật',
-    '<h3>JSON spec</h3><pre>' + esc(JSON.stringify(p.spec, null, 2)) + '</pre>' +
-    '<h3>Code CadQuery</h3><pre>' + esc(p.code || 'Chưa có') + '</pre>');
+  openDlg('Thông số kỹ thuật',
+    '<h3>Thông số dạng JSON</h3><pre>' + esc(JSON.stringify(p.spec, null, 2)) + '</pre>' +
+    '<h3>Mã CadQuery</h3><pre>' + esc(p.code || 'Chưa có') + '</pre>');
 };
 
 /* ================= Mic ================= */

@@ -36,9 +36,9 @@ INDEX_HTML = pathlib.Path(__file__).resolve().parent / "index.html"
 _PARAM_TYPES = {"spur_gear", "bevel_gear", "sprocket", "rack", "worm", "spring", "cam", "pulley"}
 
 OVERLOAD_MESSAGE = (
-    "He thong AI dang bi gioi han rate limit (dang dung key OpenRouter mien phi). "
-    "Day la gioi han tam thoi, khong phai loi cua he thong. Vui long doi vai "
-    "chuc giay roi bam Tao ban ve lai."
+    "Hệ thống AI đang bị giới hạn lượt gọi (đang dùng khóa OpenRouter miễn phí). "
+    "Đây là giới hạn tạm thời, không phải lỗi của hệ thống. Vui lòng đợi vài "
+    "chục giây rồi bấm Tạo mô hình lại."
 )
 
 
@@ -125,7 +125,7 @@ def generate(request: Request, body: GenerateRequest):
     if len(_request_log[client_ip]) >= MAX_REQUESTS_PER_WINDOW:
         return {
             "success": False,
-            "message": f"Ban da vuot qua gioi han {MAX_REQUESTS_PER_WINDOW} lan tao/gio. Vui long thu lai sau.",
+            "message": f"Bạn đã vượt quá giới hạn {MAX_REQUESTS_PER_WINDOW} lần tạo mỗi giờ. Vui lòng thử lại sau.",
         }
     _request_log[client_ip].append(now)
 
@@ -135,7 +135,7 @@ def generate(request: Request, body: GenerateRequest):
     try:
         client = get_openrouter_client()
     except Exception as e:
-        return {"success": False, "message": f"Loi cau hinh Gemini API key: {e}"}
+        return {"success": False, "message": f"Lỗi cấu hình khóa API OpenRouter: {e}"}
 
     log = run_pipeline(body.request, client, output_step_path=str(output_path))
     info = _build_pipeline_info(log)
@@ -155,7 +155,7 @@ def generate(request: Request, body: GenerateRequest):
             pass
         return {
             "success": True,
-            "message": "Da tao mo hinh 3D thanh cong.",
+            "message": "Đã tạo mô hình 3D thành công.",
             "download_url": f"/download/{file_id}",
             "download_dxf_url": f"/download_dxf/{file_id}",
             "download_stl_url": f"/download_stl/{file_id}",
@@ -172,7 +172,7 @@ def generate(request: Request, body: GenerateRequest):
 
     return {
         "success": False,
-        "message": "Khong the tao mo hinh. Loi: " + "; ".join(log.final_errors),
+        "message": "Không thể tạo mô hình. Lỗi: " + "; ".join(log.final_errors),
         "pipeline": info,
     }
 
@@ -180,10 +180,10 @@ def generate(request: Request, body: GenerateRequest):
 @app.get("/download/{file_id}")
 def download(file_id: str):
     if not re.fullmatch(r"[0-9a-f]{8}", file_id):
-        return {"error": "File khong hop le"}
+        return {"error": "Mã tệp không hợp lệ"}
     path = OUTPUT_DIR / f"{file_id}.step"
     if not path.exists():
-        return {"error": "File khong ton tai"}
+        return {"error": "Tệp không tồn tại"}
     return FileResponse(path, filename=f"{file_id}.step", media_type="application/step")
 
 
@@ -191,10 +191,10 @@ def download(file_id: str):
 def download_stl(file_id: str):
     """Xuat luoi STL tu file STEP da tao (dung cho xem truoc 3D va tai ve)."""
     if not re.fullmatch(r"[0-9a-f]{8}", file_id):
-        return {"error": "File khong hop le"}
+        return {"error": "Mã tệp không hợp lệ"}
     step_path = OUTPUT_DIR / f"{file_id}.step"
     if not step_path.exists():
-        return {"error": "File khong ton tai"}
+        return {"error": "Tệp không tồn tại"}
     stl_path = OUTPUT_DIR / f"{file_id}.stl"
     if not stl_path.exists():
         try:
@@ -205,7 +205,7 @@ def download_stl(file_id: str):
                 tolerance=0.05, angularTolerance=0.1,
             )
         except Exception as e:
-            return {"error": f"Khong xuat duoc STL: {type(e).__name__}: {e}"}
+            return {"error": f"Không xuất được STL: {type(e).__name__}: {e}"}
     return FileResponse(stl_path, filename=f"{file_id}.stl", media_type="model/stl")
 
 
@@ -213,10 +213,10 @@ def download_stl(file_id: str):
 def download_dxf(file_id: str):
     """Xuat ban ve 2D (DXF, 3 hinh chieu + kich thuoc bao ngoai) tu file STEP da tao."""
     if not re.fullmatch(r"[0-9a-f]{8}", file_id):
-        return {"error": "File khong hop le"}
+        return {"error": "Mã tệp không hợp lệ"}
     step_path = OUTPUT_DIR / f"{file_id}.step"
     if not step_path.exists():
-        return {"error": "File khong ton tai"}
+        return {"error": "Tệp không tồn tại"}
     dxf_path = OUTPUT_DIR / f"{file_id}.dxf"
     if not dxf_path.exists():
         try:
@@ -236,5 +236,5 @@ def download_dxf(file_id: str):
                 params=(meta.get("base_dimensions") if pt in _PARAM_TYPES else None),
             )
         except Exception as e:
-            return {"error": f"Khong xuat duoc ban ve 2D: {type(e).__name__}: {e}"}
+            return {"error": f"Không xuất được bản vẽ 2D: {type(e).__name__}: {e}"}
     return FileResponse(dxf_path, filename=f"{file_id}.dxf", media_type="application/dxf")
