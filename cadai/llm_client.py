@@ -38,7 +38,14 @@ Quy tac base_dimensions theo part_type:
                 vd "doan then hoa phi25 dai 40, 8 ranh rong 4 sau 2" -> {"shape":"spline","diameter":25,"length":40,"spline_count":8,"spline_width":4,"spline_depth":2}
        "eccentric": doan/vanh LECH TAM; them "offset" la do lech tam (mm) so voi duong tam truc
                 vd "vanh lech tam phi30 dai 15 lech 2mm" -> {"shape":"eccentric","diameter":30,"length":15,"offset":2}
-     Dung dung cac khoa tren, KHONG tu doi ten. Doan taper/spline/eccentric KHONG bi tu choi.)
+       "square": doan VUONG (dau vuong lap tay quay, chia khoa...); o day "diameter" la CANH vuong (mm), KHONG phai duong kinh;
+                tuy chon "width_y" la canh con lai neu la hinh CHU NHAT (mac dinh bang diameter)
+                vd "dau vuong 18x18 dai 25" -> {"shape":"square","diameter":18,"length":25}
+                vd "dau chu nhat 24x14 dai 30" -> {"shape":"square","diameter":24,"width_y":14,"length":30}
+       "hexagon": doan LUC GIAC DEU; o day "diameter" la BE RONG DOI DIEN (khoang cach giua hai mat phang song song, la so
+                chia khoa/co le), KHONG phai duong kinh ngoai tiep
+                vd "dau luc giac doi dien 22 dai 20" -> {"shape":"hexagon","diameter":22,"length":20}
+     Dung dung cac khoa tren, KHONG tu doi ten. Doan taper/spline/eccentric/square/hexagon KHONG bi tu choi.)
   housing:       {"length":..,"width":..,"height":..,"wall_thickness":..}
   pillow_block:  {"length":..,"depth":..,"height":..,"base_height":..,"top_width":..,"seat_radius":..}
   bolt:          {"diameter":..,"length":.., "head_width":.. (tuy chon), "head_height":.. (tuy chon)}

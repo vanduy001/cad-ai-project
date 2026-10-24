@@ -22,7 +22,7 @@ SUPPORTED_FEATURE_TYPES = (
     "undercut",
 )
 # Hinh dang cac doan cua stepped_shaft
-SEGMENT_SHAPES = ("cylinder", "taper", "spline", "eccentric")
+SEGMENT_SHAPES = ("cylinder", "taper", "spline", "eccentric", "square", "hexagon")
 
 # ---- Dung sai (tolerances) va do nham (surface_finish) ----
 # Cap dung sai ISO: chu hoa = lo (H7, K7), chu thuong = truc (g6, h6, k6); so = cap chinh xac IT1..IT18
@@ -180,7 +180,7 @@ def _validate_tolerances_and_finish(spec: PartSpec) -> list[str]:
 
 
 def _validate_segment_shape(i: int, seg: dict) -> list[str]:
-    """Kiem tra hinh dang rieng cua tung doan stepped_shaft (taper / spline / eccentric)."""
+    """Kiem tra hinh dang rieng cua tung doan stepped_shaft (taper / spline / eccentric / square / hexagon)."""
     errs: list[str] = []
     shape = seg.get("shape", "cylinder")
     if shape not in SEGMENT_SHAPES:
@@ -197,6 +197,16 @@ def _validate_segment_shape(i: int, seg: dict) -> list[str]:
         off = seg.get("offset")
         if not _is_num(off) or off <= 0:
             errs.append(f"segments[{i}] (eccentric) can 'offset' la so duong (do lech tam, mm)")
+
+    elif shape == "square":
+        # "diameter" la canh vuong; "width_y" (tuy chon) la canh con lai neu la hinh chu nhat
+        wy = seg.get("width_y")
+        if wy is not None and (not _is_num(wy) or wy <= 0):
+            errs.append(f"segments[{i}] (square): 'width_y' phai la so duong (canh con lai, mm)")
+
+    elif shape == "hexagon":
+        # "diameter" la be rong doi dien (khoang cach hai mat phang song song); khong can them tham so
+        pass
 
     elif shape == "spline":
         if "spline_count" in seg:
